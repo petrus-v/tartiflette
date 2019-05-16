@@ -150,6 +150,8 @@ fragment TypeRef on __Type {
 """
 
 
+# TODO: fix those tests when introspection queries are properly handled
+@pytest.mark.skip(reason="Introspection queries aren't properly handled yet.")
 @pytest.mark.asyncio
 async def test_issue92_fragment_inordered(ttftt_engine):
     results = await ttftt_engine.execute(

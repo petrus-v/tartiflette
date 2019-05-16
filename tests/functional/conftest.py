@@ -3,7 +3,7 @@ import os
 
 import pytest
 
-from tartiflette import Resolver, create_engine
+from tartiflette import Directive, Resolver, create_engine
 from tartiflette.schema.registry import SchemaRegistry
 from tartiflette.subscription.subscription import Subscription
 
@@ -20,14 +20,19 @@ _SCHEMAS = {
     "default": _DEFAULT_SCHEMA,
     "animals": _DEFAULT_SCHEMA,
     "libraries": _get_sdl_path("libraries.sdl"),
+    "coercion": (
+        _get_sdl_path("coercion.sdl"),
+        {"modules": ["tests.functional.coercers.common"]},
+    ),
+    "pets": os.path.join(_CURR_PATH, "reusable", "pets", "schema.graphql"),
 }
 
-_TTFTT_ENGINES = {
-    schema_name: asyncio.get_event_loop().run_until_complete(
-        create_engine(sdl, schema_name=schema_name)
+_TTFTT_ENGINES = {}
+for schema_name, sdl in _SCHEMAS.items():
+    sdl, extra = sdl if isinstance(sdl, tuple) else (sdl, {})
+    _TTFTT_ENGINES[schema_name] = asyncio.get_event_loop().run_until_complete(
+        create_engine(sdl, schema_name=schema_name, **extra)
     )
-    for schema_name, sdl in _SCHEMAS.items()
-}
 
 
 @pytest.yield_fixture
@@ -78,7 +83,8 @@ def pytest_runtest_setup(item):
 
     resolvers = marker.kwargs.get("resolvers") or {}
     subscriptions = marker.kwargs.get("subscriptions") or {}
-    if not (resolvers or subscriptions):
+    directives = marker.kwargs.get("directives") or {}
+    if not (resolvers or subscriptions or directives):
         return
 
     schema_name = _get_schema_name_from_marker(marker)
@@ -93,12 +99,20 @@ def pytest_runtest_setup(item):
     if subscriptions:
         SchemaRegistry._schemas[schema_name]["subscriptions"] = {}
 
+    if directives:
+        SchemaRegistry._schemas[schema_name]["directives"] = {}
+
     # Apply "Resolver" decorators to resolvers functions
     for name, implementation in resolvers.items():
         Resolver(name, schema_name=schema_name)(implementation)
 
+    # Apply "Subscription" decorators to resolvers functions
     for name, implementation in subscriptions.items():
         Subscription(name, schema_name=schema_name)(implementation)
+
+    # Apply "Directive" decorators to resolvers functions
+    for name, implementation in directives.items():
+        Directive(name, schema_name=schema_name)(implementation)
 
     # Bake resolvers
     for resolver in (
@@ -111,6 +125,12 @@ def pytest_runtest_setup(item):
         SchemaRegistry._schemas[schema_name].get("subscriptions") or {}
     ).values():
         subscription.bake(_TTFTT_ENGINES[schema_name]._schema)
+
+    # Bake directives
+    for directive in (
+        SchemaRegistry._schemas[schema_name].get("directives") or {}
+    ).values():
+        directive.bake(_TTFTT_ENGINES[schema_name]._schema)
 
     # Re-bake engine schema
     _TTFTT_ENGINES[schema_name]._schema.bake()

@@ -54,7 +54,7 @@ async def test_tartiflette_execute_object_type_output(clean_registry):
                 "data": None,
                 "errors": [
                     {
-                        "message": "Invalid value (value: None) for field `testField` of type `Test!`",
+                        "message": "Cannot return null for non-nullable field Query.testField.",
                         "path": ["testField"],
                         "locations": [{"line": 3, "column": 9}],
                     }

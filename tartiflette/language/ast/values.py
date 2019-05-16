@@ -46,6 +46,14 @@ class BooleanValueNode(ValueNode):
             self.location,
         )
 
+    def __str__(self) -> str:
+        """
+        Returns a human-readable representation of the value.
+        :return: a human-readable representation of the value
+        :rtype: str
+        """
+        return str(self.value).lower()
+
 
 class EnumValueNode(ValueNode):
     """
@@ -89,6 +97,14 @@ class EnumValueNode(ValueNode):
             self.value,
             self.location,
         )
+
+    def __str__(self) -> str:
+        """
+        Returns a human-readable representation of the value.
+        :return: a human-readable representation of the value
+        :rtype: str
+        """
+        return str(self.value)
 
 
 class FloatValueNode(ValueNode):
@@ -134,6 +150,14 @@ class FloatValueNode(ValueNode):
             self.location,
         )
 
+    def __str__(self) -> str:
+        """
+        Returns a human-readable representation of the value.
+        :return: a human-readable representation of the value
+        :rtype: str
+        """
+        return str(self.value)
+
 
 class IntValueNode(ValueNode):
     """
@@ -178,6 +202,14 @@ class IntValueNode(ValueNode):
             self.location,
         )
 
+    def __str__(self) -> str:
+        """
+        Returns a human-readable representation of the value.
+        :return: a human-readable representation of the value
+        :rtype: str
+        """
+        return str(self.value)
+
 
 class NullValueNode(ValueNode):
     """
@@ -214,6 +246,14 @@ class NullValueNode(ValueNode):
         :rtype: str
         """
         return "NullValueNode(location=%r)" % self.location
+
+    def __str__(self) -> str:
+        """
+        Returns a human-readable representation of the value.
+        :return: a human-readable representation of the value
+        :rtype: str
+        """
+        return "null"
 
 
 class StringValueNode(ValueNode):
@@ -258,6 +298,14 @@ class StringValueNode(ValueNode):
             self.value,
             self.location,
         )
+
+    def __str__(self) -> str:
+        """
+        Returns a human-readable representation of the value.
+        :return: a human-readable representation of the value
+        :rtype: str
+        """
+        return self.value
 
 
 class ListValueNode(ValueNode):
@@ -304,6 +352,14 @@ class ListValueNode(ValueNode):
             self.values,
             self.location,
         )
+
+    def __str__(self) -> str:
+        """
+        Returns a human-readable representation of the value.
+        :return: a human-readable representation of the value
+        :rtype: str
+        """
+        return "[" + ", ".join([str(value) for value in self.values]) + "]"
 
 
 class ObjectFieldNode(Node):
@@ -360,6 +416,14 @@ class ObjectFieldNode(Node):
             self.location,
         )
 
+    def __str__(self) -> str:
+        """
+        Returns a human-readable representation of the value.
+        :return: a human-readable representation of the value
+        :rtype: str
+        """
+        return f"{self.name}: {self.value}"
+
 
 class ObjectValueNode(ValueNode):
     """
@@ -407,3 +471,11 @@ class ObjectValueNode(ValueNode):
             self.fields,
             self.location,
         )
+
+    def __str__(self) -> str:
+        """
+        Returns a human-readable representation of the value.
+        :return: a human-readable representation of the value
+        :rtype: str
+        """
+        return "{" + ", ".join([str(field) for field in self.fields]) + "}"

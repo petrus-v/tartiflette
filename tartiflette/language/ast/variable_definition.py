@@ -13,7 +13,7 @@ class VariableDefinitionNode(Node):
     def __init__(
         self,
         variable: "VariableNode",
-        type: "TypeNode",
+        type: "TypeNode",  # pylint: disable=redefined-builtin
         default_value: Optional["ValueNode"] = None,
         location: Optional["Location"] = None,
     ) -> None:
@@ -27,7 +27,6 @@ class VariableDefinitionNode(Node):
         :type default_value: Optional[ValueNode]
         :type location: Optional[Location]
         """
-        # pylint: disable=redefined-builtin
         self.variable = variable
         self.type = type
         self.default_value = default_value

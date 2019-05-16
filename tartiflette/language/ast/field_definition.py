@@ -20,7 +20,7 @@ class FieldDefinitionNode(Node):
     def __init__(
         self,
         name: "NameNode",
-        type: "TypeNode",
+        type: "TypeNode",  # pylint: disable=redefined-builtin
         description: Optional["DescriptionNode"] = None,
         arguments: Optional[List["InputValueDefinitionNode"]] = None,
         directives: Optional[List["DirectiveNode"]] = None,
@@ -40,7 +40,6 @@ class FieldDefinitionNode(Node):
         :type directives: Optional[List[DirectiveNode]]
         :type location: Optional[Location]
         """
-        # pylint: disable=redefined-builtin
         self.name = name
         self.type = type
         self.description = description

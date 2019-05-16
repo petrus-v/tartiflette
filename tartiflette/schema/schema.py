@@ -16,7 +16,7 @@ from tartiflette.types.exceptions.tartiflette import (
     UnknownSchemaFieldResolver,
 )
 from tartiflette.types.field import GraphQLField
-from tartiflette.types.helpers import reduce_type
+from tartiflette.types.helpers.reduce_type import reduce_type
 from tartiflette.types.input_object import GraphQLInputObjectType
 from tartiflette.types.interface import GraphQLInterfaceType
 from tartiflette.types.non_null import GraphQLNonNull
@@ -45,6 +45,9 @@ _EXPECTED_DIRECTIVE_IMPLEM = [
     "on_post_input_coercion",
     "on_argument_execution",
     "on_field_execution",
+    "on_field_collection",
+    "on_fragment_spread_collection",
+    "on_inline_fragment_collection",
 ]
 
 
@@ -276,24 +279,25 @@ class GraphQLSchema:
         """
         Bake the final schema (it should not change after this) used for
         execution.
-
-        :return: None
+        :param custom_default_resolver: callable that will replace the builtin
+        default_resolver
+        :type custom_default_resolver: Optional[Callable]
+        :rtype: None
         """
         self.inject_introspection()
         try:
             self.bake_types(custom_default_resolver)  # Bake types
             self.call_onbuild_directives()  # Call on_build directive that can modify the schema
-        except Exception:  # Failure here should be collected at validation time. pylint: disable=broad-except
-            pass
+        except Exception:  # pylint: disable=broad-except
+            # Failure here should be collected at validation time.
             # TODO Change this when we'll have a better idea on what to do with the on_build kind of directive.
+            pass
 
         self.validate()  # Revalidate.
 
     def validate(self) -> bool:
         """
         Check that the given schema is valid.
-
-        :return: bool
         """
         # TODO: Optimization: most validation functions iterate over
         # the schema types: it could be done in one loop.
@@ -560,3 +564,12 @@ class GraphQLSchema:
                 raise MissingImplementation(
                     "directive `{}` is missing an implementation".format(name)
                 )
+
+    def __hash__(self) -> int:
+        """
+        Hash the name of the schema as a unique representation of a
+        GraphQLSchema.
+        :return: hash of the schema name
+        :rtype: int
+        """
+        return hash(self.name)

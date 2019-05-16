@@ -1,12 +1,12 @@
 from typing import Any, Callable, Dict, List, Optional, Union
 
-from tartiflette.resolver.factory import ResolverExecutorFactory
-from tartiflette.types.helpers import (
-    get_directive_instances,
-    reduce_type,
-    wraps_with_directives,
+from tartiflette.resolver.factory import get_field_resolver
+from tartiflette.types.helpers.get_directive_instances import (
+    compute_directive_nodes,
 )
+from tartiflette.types.helpers.reduce_type import reduce_type
 from tartiflette.types.type import GraphQLType
+from tartiflette.utils.directives import wraps_with_directives
 
 
 class GraphQLField:
@@ -16,6 +16,8 @@ class GraphQLField:
     A field is used in Object, Interfaces as its constituents.
     """
 
+    # pylint: disable=too-many-instance-attributes
+
     def __init__(
         self,
         name: str,
@@ -23,7 +25,7 @@ class GraphQLField:
         arguments: Optional[Dict[str, "GraphQLArgument"]] = None,
         resolver: Optional[callable] = None,
         description: Optional[str] = None,
-        directives: Optional[Dict[str, Optional[dict]]] = None,
+        directives: Optional[List[Dict[str, Optional[dict]]]] = None,
         schema: Optional["GraphQLSchema"] = None,
     ) -> None:
         self.name = name
@@ -34,15 +36,15 @@ class GraphQLField:
         self._schema = schema
         self.description = description or ""
 
-        self.resolver = ResolverExecutorFactory.get_resolver_executor(
-            resolver, self
-        )
+        self.resolver = None
+        self.raw_resolver = resolver
+        self.type_resolver = None
         self.subscribe = None
         self.parent_type = None
 
         # Introspection Attribute
         self.isDeprecated = False  # pylint: disable=invalid-name
-        self._directives_implementations = None
+        self.directives_definition = None
         self._is_leaf = False
         self._reduced_type = None
         self._reduced_type_name = None
@@ -50,7 +52,7 @@ class GraphQLField:
 
     @property
     def directives(self) -> List[Dict[str, Any]]:
-        return self._directives_implementations
+        return self.directives_definition
 
     @property
     def introspection_directives(self):
@@ -82,6 +84,12 @@ class GraphQLField:
             and self.resolver == other.resolver
             and self.directives == other.directives
         )
+
+    @property
+    def graphql_type(self) -> Union[str, GraphQLType]:
+        if isinstance(self.gql_type, GraphQLType):
+            return self.gql_type
+        return self.schema.find_type(self.gql_type)
 
     # Introspection Attribute
     @property
@@ -140,11 +148,11 @@ class GraphQLField:
         self._schema = schema
         self._reduced_type_name = reduce_type(self.gql_type)
         self._reduced_type = self._schema.find_type(self._reduced_type_name)
-        self._directives_implementations = get_directive_instances(
-            self._directives, self._schema
+        self.directives_definition = compute_directive_nodes(
+            self._schema, self._directives
         )
         self._introspection_directives = wraps_with_directives(
-            directives_definition=self._directives_implementations,
+            directives_definition=self.directives_definition,
             directive_hook="on_introspection",
         )
         self.parent_type = parent_type
@@ -154,4 +162,4 @@ class GraphQLField:
         for arg in self.arguments.values():
             arg.bake(self._schema)
 
-        self.resolver.bake(custom_default_resolver)
+        self.resolver = get_field_resolver(self, custom_default_resolver)

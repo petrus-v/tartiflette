@@ -9,38 +9,6 @@ class GraphQLDirective:
     its arguments
     """
 
-    SCHEMA = "SCHEMA"
-    SCALAR = "SCALAR"
-    OBJECT = "OBJECT"
-    FIELD_DEFINITION = "FIELD_DEFINITION"
-    ARGUMENT_DEFINITION = "ARGUMENT_DEFINITION"
-    INTERFACE = "INTERFACE"
-    UNION = "UNION"
-    ENUM = "ENUM"
-    ENUM_VALUE = "ENUM_VALUE"
-    INPUT_OBJECT = "INPUT_OBJECT"
-    INPUT_FIELD_DEFINITION = "INPUT_FIELD_DEFINITION"
-    FIELD = "FIELD"
-    FRAGMENT_SPREAD = "FRAGMENT_SPREAD"
-    INLINE_FRAGMENT = "INLINE_FRAGMENT"
-
-    POSSIBLE_LOCATIONS = [
-        SCHEMA,
-        SCALAR,
-        OBJECT,
-        FIELD_DEFINITION,
-        ARGUMENT_DEFINITION,
-        INTERFACE,
-        UNION,
-        ENUM,
-        ENUM_VALUE,
-        INPUT_OBJECT,
-        INPUT_FIELD_DEFINITION,
-        FIELD,
-        FRAGMENT_SPREAD,
-        INLINE_FRAGMENT,
-    ]
-
     def __init__(
         self,
         name: str,

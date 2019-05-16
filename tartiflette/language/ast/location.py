@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 
 class Location:
@@ -60,3 +60,19 @@ class Location:
             self.line_end,
             self.column_end,
         )
+
+    def __str__(self) -> str:
+        """
+        Returns a human-readable representation of the location.
+        :return: a human-readable representation of the location
+        :rtype: str
+        """
+        return f"[{self.line}:{self.column}]"
+
+    def collect_value(self) -> Dict[str, int]:
+        """
+        Returns the location as a dictionary.
+        :return: the location as a dictionary
+        :rtype: Dict[str, int]
+        """
+        return {"line": self.line, "column": self.column}

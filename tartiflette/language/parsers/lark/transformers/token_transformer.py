@@ -118,9 +118,7 @@ class TokenTransformer(Transformer_InPlace):
             tree,
             Token(
                 "STRING_VALUE",
-                bytes(token.value[slicing:-slicing], "utf-8").decode(
-                    "unicode-escape"
-                ),
+                token.value[slicing:-slicing],
                 token.pos_in_stream,
                 token.line,
                 token.column,

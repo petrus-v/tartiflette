@@ -45,3 +45,11 @@ class VariableNode(ValueNode):
             self.name,
             self.location,
         )
+
+    def __str__(self) -> str:
+        """
+        Returns a human-readable representation of the value.
+        :return: a human-readable representation of the value
+        :rtype: str
+        """
+        return f"${self.name.value}"

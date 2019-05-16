@@ -45,3 +45,11 @@ class NamedTypeNode(TypeNode):
             self.name,
             self.location,
         )
+
+    def __str__(self) -> str:
+        """
+        Returns a human-readable representation of the named type.
+        :return: a human-readable representation of the named type
+        :rtype: str
+        """
+        return str(self.name)

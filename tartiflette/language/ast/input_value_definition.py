@@ -20,7 +20,7 @@ class InputValueDefinitionNode(Node):
     def __init__(
         self,
         name: "NameNode",
-        type: "TypeNode",
+        type: "TypeNode",  # pylint: disable=redefined-builtin
         description: Optional["DescriptionNode"] = None,
         default_value: Optional["ValueNode"] = None,
         directives: Optional[List["DirectiveNode"]] = None,
@@ -41,7 +41,6 @@ class InputValueDefinitionNode(Node):
         :type directives: Optional[List[DirectiveNode]]
         :type location: Optional[Location]
         """
-        # pylint: disable=redefined-builtin
         self.name = name
         self.type = type
         self.description = description

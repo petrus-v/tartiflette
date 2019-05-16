@@ -3,7 +3,6 @@ import os
 from glob import glob
 from typing import List, Optional, Union
 
-from tartiflette.schema.schema import GraphQLSchema
 from tartiflette.types.exceptions.tartiflette import ImproperlyConfigured
 
 
@@ -61,7 +60,7 @@ class SchemaRegistry:
     @staticmethod
     def register_sdl(
         schema_name: str,
-        sdl: Union[str, List[str], GraphQLSchema],
+        sdl: Union[str, List[str], "GraphQLSchema"],
         modules_sdl: str = None,
     ) -> None:
         SchemaRegistry._schemas.setdefault(schema_name, {})
@@ -95,5 +94,5 @@ class SchemaRegistry:
         return SchemaRegistry._schemas[schema_name]
 
     @staticmethod
-    def find_schema(schema_name: str = "default") -> GraphQLSchema:
+    def find_schema(schema_name: str = "default") -> "GraphQLSchema":
         return SchemaRegistry.find_schema_info(schema_name)["inst"]

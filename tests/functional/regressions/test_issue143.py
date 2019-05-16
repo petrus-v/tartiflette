@@ -35,6 +35,8 @@ async def ttftt_engine():
     return await create_engine(sdl=_SDL, schema_name="test_issue143")
 
 
+# TODO: fix those tests when introspection queries are properly handled
+@pytest.mark.skip(reason="Introspection queries aren't properly handled yet.")
 @pytest.mark.asyncio
 async def test_issue143(ttftt_engine):
     query = """query Test{

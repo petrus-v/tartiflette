@@ -1,15 +1,12 @@
 from typing import Any, List, Optional
 
-from tartiflette.executors.types import Info
-from tartiflette.types.location import Location
-
 
 class TartifletteError(Exception):
     def __init__(
         self,
         message: str,
         path: Optional[list] = None,
-        locations: Optional[List[Location]] = None,
+        locations: Optional[List["Location"]] = None,
         user_message: str = None,
         more_info: str = "",
         extensions: Optional[dict] = None,
@@ -17,18 +14,24 @@ class TartifletteError(Exception):
     ) -> None:
         super().__init__(message)
         self.message = message  # Developer message by default
-        self.user_message = user_message or message
+        self.user_message = user_message
         self.more_info = more_info
         self.path = path or None
         self.locations = locations or []
         self.extensions = extensions or {}
         self.original_error = original_error
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}(message=%r, locations=%r)" % (
+            self.user_message or self.message,
+            self.locations,
+        )
+
     def coerce_value(
         self,
         *_args,
         path: Optional[list] = None,
-        locations: Optional[List[Location]] = None,
+        locations: Optional[List["Location"]] = None,
         **_kwargs,
     ):
         computed_locations = []
@@ -40,9 +43,7 @@ class TartifletteError(Exception):
             pass
 
         errors = {
-            "message": self.user_message
-            if self.user_message
-            else self.message,
+            "message": self.user_message or self.message,
             "path": path or self.path,
             "locations": computed_locations,
         }
@@ -73,7 +74,7 @@ class ImproperlyConfigured(TartifletteError):
 
 
 class InvalidValue(TartifletteError):
-    def __init__(self, value: Any, info: Info) -> None:
+    def __init__(self, value: Any, info: "ResolveInfo") -> None:
         self.value = value
         self.info = info
         message = "Invalid value (value: {!r})".format(value)
@@ -230,4 +231,8 @@ class UnknownGraphQLType(TartifletteError):
 
 
 class SkipExecution(Exception):
+    pass
+
+
+class SkipCollection(Exception):
     pass

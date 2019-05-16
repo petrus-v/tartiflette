@@ -2,10 +2,8 @@ from typing import Callable, List, Optional, Union
 
 from tartiflette.directive.directive import Directive
 from tartiflette.engine import Engine
-from tartiflette.resolver.factory import ResolverExecutorFactory
 from tartiflette.resolver.resolver import Resolver
-from tartiflette.scalar.custom_scalar import Scalar
-from tartiflette.sdl import build_graphql_schema_from_sdl
+from tartiflette.scalar.scalar import Scalar
 from tartiflette.subscription.subscription import Subscription
 from tartiflette.types.exceptions import TartifletteError
 

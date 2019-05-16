@@ -13,7 +13,7 @@ class OperationTypeDefinitionNode(Node):
     def __init__(
         self,
         operation_type: str,
-        type: "NamedTypeNode",
+        type: "NamedTypeNode",  # pylint: disable=redefined-builtin
         location: Optional["Location"] = None,
     ) -> None:
         """
@@ -25,7 +25,6 @@ class OperationTypeDefinitionNode(Node):
         :type type: NamedTypeNode
         :type location: Optional[Location]
         """
-        # pylint: disable=redefined-builtin
         self.operation_type = operation_type
         self.type = type
         self.location = location

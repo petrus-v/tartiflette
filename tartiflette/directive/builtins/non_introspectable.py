@@ -3,44 +3,97 @@ from typing import Any, Callable, Dict, Optional
 from tartiflette import Directive
 
 
-class NonIntrospectable:
+class NonIntrospectableDirective:
+    """
+    Built-in directive to skip the introspection of the portions of a GraphQL
+    service's schema.
+    """
+
     async def on_introspection(
         self,
-        _directive_args: Dict[str, Any],
-        _next_directive: Callable,
-        _introspected_element: Any,
-        _ctx: Optional[Dict[str, Any]],
-        _info: "Info",
+        directive_args: Dict[str, Any],
+        next_directive: Callable,
+        introspected_element: Any,
+        ctx: Optional[Dict[str, Any]],
+        info: "ResolveInfo",
     ) -> None:
+        """
+        Skips the treatment and returns None instead of the introspected
+        element.
+        :param directive_args: arguments passed to the directive
+        :param next_directive: next directive to call
+        :param introspected_element: current introspected element
+        :param ctx: context passed to the query execution
+        :param info: information related to the execution
+        :type directive_args: Dict[str, Any]
+        :type next_directive: Callable
+        :type introspected_element: Any
+        :type ctx: Optional[Dict[str, Any]]
+        :type info: ResolveInfo
+        :return: the deprecated introspected element
+        :rtype: Any
+        """
+        # pylint: disable=unused-argument
         return None
 
 
-class NonIntrospectableDeprecated:
+class NonIntrospectableDeprecatedDirective:
+    """
+    Built-in directive to skip the introspection of the portions of a GraphQL
+    service's schema.
+    """
+
     async def on_introspection(
         self,
-        _directive_args: Dict[str, Any],
-        _next_directive: Callable,
-        _introspected_element: Any,
-        _ctx: Optional[Dict[str, Any]],
-        _info: "Info",
+        directive_args: Dict[str, Any],
+        next_directive: Callable,
+        introspected_element: Any,
+        ctx: Optional[Dict[str, Any]],
+        info: "ResolveInfo",
     ) -> None:
+        """
+        Skips the treatment and returns None instead of the introspected
+        element.
+        :param directive_args: arguments passed to the directive
+        :param next_directive: next directive to call
+        :param introspected_element: current introspected element
+        :param ctx: context passed to the query execution
+        :param info: information related to the execution
+        :type directive_args: Dict[str, Any]
+        :type next_directive: Callable
+        :type introspected_element: Any
+        :type ctx: Optional[Dict[str, Any]]
+        :type info: ResolveInfo
+        :return: the deprecated introspected element
+        :rtype: Any
+        """
+        # pylint: disable=unused-argument
         print(
-            "@non_introspectable is deprecated, please use @nonIntrospectable, will be removed in 0.12.0"
+            "@non_introspectable is deprecated, please use "
+            "@nonIntrospectable, will be removed in 0.12.0"
         )
         return None
 
 
-def bake(schema_name, _config):
-    sdl = """
+def bake(schema_name: str, config: Optional[Dict[str, Any]] = None) -> str:
+    """
+    Links the directive to the appropriate schema and returns the SDL related
+    to the directive.
+    :param schema_name: schema name to link with
+    :param config: configuration of the directive
+    :type schema_name: str
+    :type config: Optional[Dict[str, Any]]
+    :return: the SDL related to the directive
+    :rtype: str
+    """
+    # pylint: disable=unused-argument
+    Directive("nonIntrospectable", schema_name=schema_name)(
+        NonIntrospectableDirective()
+    )
+    Directive("non_introspectable", schema_name=schema_name)(
+        NonIntrospectableDeprecatedDirective()
+    )
+    return """
     directive @nonIntrospectable on FIELD_DEFINITION
     directive @non_introspectable on FIELD_DEFINITION
     """
-
-    Directive(name="nonIntrospectable", schema_name=schema_name)(
-        NonIntrospectable()
-    )
-    Directive(name="non_introspectable", schema_name=schema_name)(
-        NonIntrospectableDeprecated()
-    )
-
-    return sdl

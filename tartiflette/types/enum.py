@@ -1,11 +1,12 @@
 from typing import Any, Dict, List, Optional, Union
 
-from tartiflette.types.helpers import (
-    get_directive_instances,
-    wraps_with_directives,
+from tartiflette.constants import UNDEFINED_VALUE
+from tartiflette.types.helpers.get_directive_instances import (
+    compute_directive_nodes,
 )
 from tartiflette.types.type import GraphQLType
 from tartiflette.utils.coercer_way import CoercerWay
+from tartiflette.utils.directives import wraps_with_directives
 
 
 class GraphQLEnumValue:
@@ -18,12 +19,15 @@ class GraphQLEnumValue:
         self,
         value: Any = None,
         description: Optional[str] = None,
-        directives: Optional[Dict[str, Union[str, Dict[str, Any]]]] = None,
+        directives: Optional[
+            List[Dict[str, Union[str, Dict[str, Any]]]]
+        ] = None,
     ) -> None:
         self.value = value
         self.description = description
         self._directives = directives
         self._schema = None
+        self.directives_definition = None
         self._directives_implementations = None
         self._introspection_directives = None
 
@@ -58,22 +62,22 @@ class GraphQLEnumValue:
 
     def bake(self, schema: "GraphQLSchema") -> None:
         self._schema = schema
-        directives_definition = get_directive_instances(
-            self._directives, self._schema
+        self.directives_definition = compute_directive_nodes(
+            self._schema, self._directives
         )
         self._directives_implementations = {
             CoercerWay.OUTPUT: wraps_with_directives(
-                directives_definition=directives_definition,
+                directives_definition=self.directives_definition,
                 directive_hook="on_pre_output_coercion",
             ),
             CoercerWay.INPUT: wraps_with_directives(
-                directives_definition=directives_definition,
+                directives_definition=self.directives_definition,
                 directive_hook="on_post_input_coercion",
             ),
         }
 
         self._introspection_directives = wraps_with_directives(
-            directives_definition=directives_definition,
+            directives_definition=self.directives_definition,
             directive_hook="on_introspection",
         )
 
@@ -96,7 +100,9 @@ class GraphQLEnumType(GraphQLType):
         values: List[GraphQLEnumValue],
         description: Optional[str] = None,
         schema: Optional["GraphQLSchema"] = None,
-        directives: Optional[List[str]] = None,
+        directives: Optional[
+            List[Dict[str, Union[str, Dict[str, Any]]]]
+        ] = None,
     ) -> None:
         super().__init__(
             name=name,
@@ -110,6 +116,7 @@ class GraphQLEnumType(GraphQLType):
             CoercerWay.OUTPUT: self._output_directives_executor,
             CoercerWay.INPUT: self._input_directives_executor,
         }
+        self.directives_definition = None
         self._directives_implementations = {}
         self._value_map = {}
 
@@ -120,6 +127,31 @@ class GraphQLEnumType(GraphQLType):
 
     def __eq__(self, other: Any) -> bool:
         return super().__eq__(other) and self.values == other.values
+
+    def coerce_output(self, val: Any) -> str:
+        if val in self._value_map:
+            return self._value_map[val].value
+        return UNDEFINED_VALUE
+
+    def get_value(self, name: str) -> str:
+        """
+        Returns the value of the enum value `name`.
+        :param name: the name of the enum value to fetch
+        :type name: str
+        :return: the value of the enum value `name`
+        :rtype: str
+        """
+        return self._value_map[name].value
+
+    def get_enum_value(self, name: str) -> "GraphQLEnumValue":
+        """
+        Returns the GraphQLEnumValue instance of the enum value `name`.
+        :param name: the name of the enum value to fetch
+        :type name: str
+        :return: the GraphQLEnumValue instance of the enum value `name`
+        :rtype: GraphQLEnumValue
+        """
+        return self._value_map[name]
 
     # Introspection Attribute
     @property
@@ -135,22 +167,22 @@ class GraphQLEnumType(GraphQLType):
 
     def bake(self, schema: "GraphQLSchema") -> None:
         super().bake(schema)
-        directives_definition = get_directive_instances(
-            self._directives, self._schema
+        self.directives_definition = compute_directive_nodes(
+            self._schema, self._directives
         )
         self._directives_implementations = {
             CoercerWay.OUTPUT: wraps_with_directives(
-                directives_definition=directives_definition,
+                directives_definition=self.directives_definition,
                 directive_hook="on_pre_output_coercion",
             ),
             CoercerWay.INPUT: wraps_with_directives(
-                directives_definition=directives_definition,
+                directives_definition=self.directives_definition,
                 directive_hook="on_post_input_coercion",
             ),
         }
 
         self._introspection_directives = wraps_with_directives(
-            directives_definition=directives_definition,
+            directives_definition=self.directives_definition,
             directive_hook="on_introspection",
         )
 
