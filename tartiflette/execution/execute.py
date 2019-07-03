@@ -12,8 +12,7 @@ from tartiflette.execution.helpers import (
     get_operation_root_type,
 )
 from tartiflette.execution.types import build_resolve_info
-
-# from tartiflette.resolver.factory import resolve_field_value_or_error
+from tartiflette.types.exceptions.tartiflette import MultipleException
 
 
 async def resolve_field(
@@ -125,8 +124,18 @@ async def execute_fields(
                 Path(path, entry_key),
             )
             for entry_key, field_nodes in fields.items()
-        ]
+        ],
+        return_exceptions=True,
     )
+
+    # TODO: maybe we could do something cleaner here
+    exceptions = MultipleException()
+    for item in results:
+        if isinstance(item, MultipleException):
+            exceptions += item
+
+    if exceptions:
+        raise exceptions
 
     return {
         entry_key: result
@@ -178,7 +187,7 @@ async def execute_operation(
             )
         )
     except Exception as e:  # pylint: disable=broad-except
-        execution_context.add_error(e)  # TODO: should we add location?
+        execution_context.add_error(e)
         return None
 
 

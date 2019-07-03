@@ -62,11 +62,15 @@ class GraphQLError(TartifletteError):
 
 
 class MultipleException(Exception):
-    exceptions = None
-
     def __init__(self, exceptions=None):
         super().__init__()
-        self.exceptions = exceptions
+        self.exceptions = exceptions or []
+
+    def __bool__(self):
+        return bool(self.exceptions)
+
+    def __add__(self, other):
+        return MultipleException(self.exceptions + other.exceptions)
 
 
 class ImproperlyConfigured(TartifletteError):

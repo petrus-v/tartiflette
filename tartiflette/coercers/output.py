@@ -1,3 +1,5 @@
+import asyncio
+
 from functools import partial, wraps
 from typing import Any, Callable, Dict, List, Optional, Union
 
@@ -6,6 +8,7 @@ from tartiflette.execution.collect import collect_subfields
 from tartiflette.execution.execute import execute_fields
 from tartiflette.resolver.default import default_type_resolver
 from tartiflette.resolver.factory import complete_value_catching_error
+from tartiflette.types.exceptions.tartiflette import MultipleException
 from tartiflette.types.helpers.definition import (
     get_wrapped_type,
     is_abstract_type,
@@ -268,26 +271,39 @@ async def list_coercer(
     :return: the computed value
     :rtype: List[Any]
     """
-    # pylint: disable=unused-argument
+    # pylint: disable=unused-argument,too-many-locals
     if not isinstance(result, list):
         raise TypeError(
             "Expected Iterable, but did not find one for field "
             f"{info.parent_type.name}.{info.field_name}."
         )
 
-    # TODO: should we gather this?
-    return [
-        await complete_value_catching_error(
-            execution_context,
-            field_nodes,
-            info,
-            Path(path, index),
-            item,
-            inner_coercer,
-            item_type,
-        )
-        for index, item in enumerate(result)
-    ]
+    results = await asyncio.gather(
+        *[
+            complete_value_catching_error(
+                execution_context,
+                field_nodes,
+                info,
+                Path(path, index),
+                item,
+                inner_coercer,
+                item_type,
+            )
+            for index, item in enumerate(result)
+        ],
+        return_exceptions=True,
+    )
+
+    # TODO: maybe we could do something cleaner here
+    exceptions = MultipleException()
+    for item in results:
+        if isinstance(item, MultipleException):
+            exceptions += item
+
+    if exceptions:
+        raise exceptions
+
+    return results
 
 
 async def non_null_coercer(

@@ -119,6 +119,36 @@ async def ttftt_engine():
                 ],
             },
         ),
+        (
+            """
+            query {
+                string1
+                stringList
+                nonNullStringList
+                stringListNonNull
+                nonNullStringListNonNull
+            }""",
+            {
+                "data": None,
+                "errors": [
+                    {
+                        "message": "Cannot return null for non-nullable field Query.string1.",
+                        "path": ["string1"],
+                        "locations": [{"line": 3, "column": 17}],
+                    },
+                    {
+                        "message": "Cannot return null for non-nullable field Query.stringListNonNull.",
+                        "path": ["stringListNonNull"],
+                        "locations": [{"line": 6, "column": 17}],
+                    },
+                    {
+                        "message": "Cannot return null for non-nullable field Query.nonNullStringListNonNull.",
+                        "path": ["nonNullStringListNonNull"],
+                        "locations": [{"line": 7, "column": 17}],
+                    },
+                ],
+            },
+        ),
     ],
 )
 @pytest.mark.asyncio

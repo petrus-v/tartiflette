@@ -21,6 +21,13 @@ _PET_DATASET = [
         "nickname": "Catto",
         "meowVolume": 5,
     },
+    {
+        "_typename": "Dog",
+        "id": 3,
+        "name": "Lil Dog",
+        "nickname": "Doggy",
+        "barkVolume": 4,
+    },
 ]
 
 _SDL = """
@@ -148,6 +155,7 @@ type AddAlienPayload {
 type Query {
   pet(id: Int!): Pet
   pets(ids: [Int!], orderBy: PetOrder, kind: PetKind): [Pet!]
+  nullablePets(ids: [Int!], orderBy: PetOrder, kind: PetKind): [Pet]
 
   owner(id: Int!): Pet
   owners(ids: [Int!], orderBy: OwnerOrder, kind: OwnerKind): [Owner!]
@@ -271,6 +279,7 @@ async def ttftt_engine():
             )
 
     @Resolver("Query.pets", schema_name="test_oh_god")
+    @Resolver("Query.nullablePets", schema_name="test_oh_god")
     async def resolve_query_pets(parent, args, ctx, info):
         kind = args.get("kind")
         return [
@@ -358,21 +367,39 @@ async def ttftt_engine():
                 "data": {
                     "pets": [
                         {
-                            "barkVolume": 10,
-                            "doesKnowCommand": True,
-                            "friends": [
-                                {"id": 1, "name": "Dog+Dog.name"},
-                                {"id": 2, "name": "Cat+Cat.name"},
-                            ],
                             "id": 1,
                             "name": "Dog+Dog.name",
                             "nickname": "Doggo+Dog.nickname",
+                            "doesKnowCommand": True,
+                            "barkVolume": 10,
                             "owner": {
                                 "__typename": "Human",
                                 "id": 1,
                                 "name": "Hooman+Human.name",
                             },
-                        }
+                            "friends": [
+                                {"id": 1, "name": "Dog+Dog.name"},
+                                {"id": 2, "name": "Cat+Cat.name"},
+                                {"id": 3, "name": "Lil Dog+Dog.name"},
+                            ],
+                        },
+                        {
+                            "id": 3,
+                            "name": "Lil Dog+Dog.name",
+                            "nickname": "Doggy+Dog.nickname",
+                            "doesKnowCommand": True,
+                            "barkVolume": 4,
+                            "owner": {
+                                "__typename": "Human",
+                                "id": 1,
+                                "name": "Hooman+Human.name",
+                            },
+                            "friends": [
+                                {"id": 1, "name": "Dog+Dog.name"},
+                                {"id": 2, "name": "Cat+Cat.name"},
+                                {"id": 3, "name": "Lil Dog+Dog.name"},
+                            ],
+                        },
                     ]
                 }
             },
@@ -398,6 +425,7 @@ async def ttftt_engine():
                     "pets": [
                         {"id": 1, "name": "Dog+Dog.name+Doggo"},
                         {"id": 2, "name": "Cat+Cat.name+Catto"},
+                        {"id": 3, "name": "Lil Dog+Dog.name+Doggo"},
                     ]
                 }
             },
@@ -423,9 +451,46 @@ async def ttftt_engine():
                 "errors": [
                     {
                         "message": "Value of argument < with > is too long.",
-                        "path": ["pets", 0, "name"],  # TODO: weird isn't?
+                        "path": ["pets", 0, "name"],
                         "locations": [{"line": 10, "column": 37}],
-                    }
+                    },
+                    {
+                        "message": "Value of argument < with > is too long.",
+                        "path": ["pets", 2, "name"],
+                        "locations": [{"line": 10, "column": 37}],
+                    },
+                ],
+            },
+        ),
+        (
+            """
+            query {
+              nullablePets {
+                ... on Cat @skip(if: true) {
+                  id
+                  name @concatenate(with: "suffixWayTooLongToBeAValidOne")
+                }
+                ... on Dog {
+                  id
+                  name @concatenate(with: "suffixWayTooLongToBeAValidOne")
+                }
+              }
+            }
+            """,
+            None,
+            {
+                "data": {"nullablePets": [None, {}, None]},
+                "errors": [
+                    {
+                        "message": "Value of argument < with > is too long.",
+                        "path": ["nullablePets", 0, "name"],
+                        "locations": [{"line": 10, "column": 37}],
+                    },
+                    {
+                        "message": "Value of argument < with > is too long.",
+                        "path": ["nullablePets", 2, "name"],
+                        "locations": [{"line": 10, "column": 37}],
+                    },
                 ],
             },
         ),

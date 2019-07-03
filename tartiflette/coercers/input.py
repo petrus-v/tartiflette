@@ -1,3 +1,5 @@
+import asyncio
+
 from functools import partial
 from typing import Any, Callable, Dict, Optional
 
@@ -255,17 +257,28 @@ async def list_coercer(
     """
     # pylint: disable=too-many-locals
     if isinstance(value, list):
+        results = await asyncio.gather(
+            *[
+                inner_coercer(
+                    node,
+                    item_value,
+                    ctx,
+                    *args,
+                    path=Path(path, index),
+                    **kwargs,
+                )
+                for index, item_value in enumerate(value)
+            ]
+        )
+
         errors = []
         coerced_values = []
-        # TODO: maybe should we gather them?
-        for index, item_value in enumerate(value):
-            coerced_value, coerce_errors = await inner_coercer(
-                node, item_value, ctx, *args, path=Path(path, index), **kwargs
-            )
+        for coerced_value, coerce_errors in results:
             if coerce_errors:
                 errors.extend(coerce_errors)
             elif not errors:
                 coerced_values.append(coerced_value)
+
         return CoercionResult(value=coerced_values, errors=errors)
 
     coerced_item_value, coerced_item_errors = await inner_coercer(

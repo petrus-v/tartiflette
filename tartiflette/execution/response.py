@@ -1,3 +1,5 @@
+import asyncio
+
 from typing import Any, Callable, Dict, List, Optional
 
 
@@ -18,9 +20,10 @@ async def build_response(
     :return: a GraphQL response
     :rtype: Dict[str, Any]
     """
-    # TODO: should we gather it?
     coerced_errors = (
-        [await error_coercer(error) for error in errors] if errors else None
+        await asyncio.gather(*[error_coercer(error) for error in errors])
+        if errors
+        else None
     )
     if coerced_errors:
         return {"data": data, "errors": coerced_errors}

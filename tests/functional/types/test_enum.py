@@ -524,7 +524,12 @@ async def test_tartiflette_execute_enum_type_output(clean_registry):
                         "message": "Expected Iterable, but did not find one for field Query.testField.",
                         "path": ["testField", 0],
                         "locations": [{"line": 3, "column": 13}],
-                    }
+                    },
+                    {
+                        "message": "Cannot return null for non-nullable field Query.testField.",
+                        "path": ["testField", 1],
+                        "locations": [{"line": 3, "column": 13}],
+                    },
                 ],
             },
         ),
@@ -538,7 +543,12 @@ async def test_tartiflette_execute_enum_type_output(clean_registry):
                         "message": "Expected Iterable, but did not find one for field Query.testField.",
                         "path": ["testField", 0],
                         "locations": [{"line": 3, "column": 13}],
-                    }
+                    },
+                    {
+                        "message": "Expected Iterable, but did not find one for field Query.testField.",
+                        "path": ["testField", 1],
+                        "locations": [{"line": 3, "column": 13}],
+                    },
                 ],
             },
         ),
@@ -552,7 +562,12 @@ async def test_tartiflette_execute_enum_type_output(clean_registry):
                         "message": "Expected Iterable, but did not find one for field Query.testField.",
                         "path": ["testField", 0],
                         "locations": [{"line": 3, "column": 13}],
-                    }
+                    },
+                    {
+                        "message": "Expected Iterable, but did not find one for field Query.testField.",
+                        "path": ["testField", 1],
+                        "locations": [{"line": 3, "column": 13}],
+                    },
                 ],
             },
         ),
