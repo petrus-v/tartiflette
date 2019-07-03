@@ -122,7 +122,9 @@ async def should_include_node(
     except SkipCollection:
         return False
     except Exception:  # pylint: disable=broad-except
-        # TODO: we should add the error to the context here
+        # TODO: we should store unexpected exception in order to treat them as
+        # field result on execution to handle them the same way as resolved
+        # value and having the bubble up error and so on.
         return False
     return True
 
