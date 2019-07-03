@@ -254,9 +254,9 @@ class Engine:
             operation_name,
         )
 
-        # TODO: maybe we should try to cast it?
-        if isinstance(source_event_stream, Exception):
-            raise source_event_stream
+        if isinstance(source_event_stream, dict):
+            yield source_event_stream
+            return
 
         async for payload in source_event_stream:
             yield await execute(

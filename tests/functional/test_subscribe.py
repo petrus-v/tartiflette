@@ -41,6 +41,32 @@ async def ttftt_engine():
 
 
 @pytest.mark.asyncio
+async def test_subscribe_error(ttftt_engine):
+    i = 0
+
+    async for result in ttftt_engine.subscribe(
+        """
+        subscription ($query: String!) {
+          newSearch(query: $query)
+        }
+        """
+    ):
+        i += 1
+        assert result == {
+            "data": None,
+            "errors": [
+                {
+                    "message": "Variable < $query > of required type < String! > was not provided.",
+                    "path": None,
+                    "locations": [{"line": 2, "column": 23}],
+                }
+            ],
+        }
+
+    assert i == 1
+
+
+@pytest.mark.asyncio
 async def test_subscribe(ttftt_engine):
     i = 0
     async for result in ttftt_engine.subscribe(

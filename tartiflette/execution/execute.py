@@ -1,6 +1,6 @@
 import asyncio
 
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, AsyncIterable, Callable, Dict, List, Optional, Union
 
 from tartiflette.coercers.arguments import coerce_arguments
 from tartiflette.coercers.common import Path
@@ -243,9 +243,9 @@ async def create_source_event_stream(
     context: Optional[Any],
     variables: Optional[Dict[str, Any]],
     operation_name: Optional[str],
-):
+) -> Union[AsyncIterable[Dict[str, Any]], Dict[str, Any]]:
     """
-    TODO:
+    Resolves the subscription source event stream.
     :param schema: the GraphQLSchema schema instance linked to the engine
     :param document: the DocumentNode instance linked to the GraphQL request
     :param response_builder: callable in charge of returning the formatted
@@ -263,8 +263,8 @@ async def create_source_event_stream(
     :type context: Optional[Any]
     :type variables: Optional[Dict[str, Any]]
     :type operation_name: str
-    :return: TODO:
-    :rtype: TODO:
+    :return: an error or an async iterable
+    :rtype: Union[AsyncIterable[Dict[str, Any]], Dict[str, Any]]
     """
     # pylint: disable=too-many-locals
     execution_context, errors = await build_execution_context(
