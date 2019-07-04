@@ -137,6 +137,62 @@ async def enum_coercer(
         )
 
 
+async def input_field_value_coercer(
+    node: "Node",
+    value: Any,
+    ctx: Optional[Any],
+    input_field_coercer: Callable,
+    literal_field_coercer: Callable,
+    input_field: "GraphQLArgument",
+    *args,
+    path: "Path",
+    **kwargs,
+) -> "CoercionResult":
+    """
+    Computes the value of an input field object.
+    :param node: the AST node to treat
+    :param value: the raw value to compute
+    :param ctx: context passed to the query execution
+    :param input_field_coercer: callable to coerce an input value for the input
+    field
+    :param literal_field_coercer: callable to coerce a literal value for the
+    input field
+    :param input_field: the input field to compute
+    :param path: the path traveled until this coercer
+    :type node: Node
+    :type value: Any
+    :type ctx: Optional[Any]
+    :type input_field_coercer: Callable
+    :type literal_field_coercer: Callable
+    :type input_field: GraphQLArgument
+    :type path: Path
+    :return: the coercion result
+    :rtype: CoercionResult
+    """
+    if is_invalid_value(value):
+        if input_field.default_value is not None:
+            return CoercionResult(
+                value=await literal_field_coercer(
+                    input_field.default_value, ctx, *args, **kwargs
+                )
+            )
+        if is_non_null_type(input_field.gql_type):
+            return CoercionResult(
+                errors=[
+                    coercion_error(
+                        f"Field < {path} > of required type "
+                        f"< {input_field.gql_type} > was not provided",
+                        node,
+                    )
+                ]
+            )
+        return UNDEFINED_VALUE
+
+    return await input_field_coercer(
+        node, value, ctx, *args, path=path, **kwargs
+    )
+
+
 @null_coercer_wrapper
 async def input_object_coercer(
     node: "Node",
@@ -183,34 +239,36 @@ async def input_object_coercer(
             ]
         )
 
-    errors = []
-    coerced_values = {}
     fields = input_object.arguments
 
-    for field_name, field in fields.items():
-        field_value = value.get(field_name, UNDEFINED_VALUE)
-        if is_invalid_value(field_value):
-            if field.default_value is not None:
-                coerced_values[field_name] = await literal_field_coercers[
-                    field_name
-                ](field.default_value, ctx, *args, **kwargs)
-            elif is_non_null_type(field.gql_type):
-                errors.append(
-                    coercion_error(
-                        f"Field < {Path(path, field_name)} > of required type "
-                        f"< {field.gql_type} > was not provided",
-                        node,
-                    )
-                )
+    results = await asyncio.gather(
+        *[
+            input_field_value_coercer(
+                node,
+                value.get(field_name, UNDEFINED_VALUE),
+                ctx,
+                input_field_coercers[field_name],
+                literal_field_coercers[field_name],
+                field,
+                *args,
+                path=Path(path, field_name),
+                **kwargs,
+            )
+            for field_name, field in fields.items()
+        ]
+    )
+
+    errors = []
+    coerced_values = {}
+    for field_name, field_result in zip(fields, results):
+        if field_result is UNDEFINED_VALUE:
             continue
 
-        coerced_field_value, coerced_field_errors = await input_field_coercers[
-            field_name
-        ](node, field_value, ctx, *args, path=Path(path, field_name), **kwargs)
-        if coerced_field_errors:
-            errors.extend(coerced_field_errors)
+        field_value, field_errors = field_result
+        if field_errors:
+            errors.extend(field_errors)
         elif not errors:
-            coerced_values[field_name] = coerced_field_value
+            coerced_values[field_name] = field_value
 
     for field_name in value:
         if field_name not in fields:
