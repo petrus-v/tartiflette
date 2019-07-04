@@ -8,6 +8,7 @@ from tartiflette.types.argument import GraphQLArgument
 from tartiflette.types.directive import GraphQLDirective
 from tartiflette.types.enum import GraphQLEnumType, GraphQLEnumValue
 from tartiflette.types.field import GraphQLField
+from tartiflette.types.input_field import GraphQLInputField
 from tartiflette.types.input_object import GraphQLInputObjectType
 from tartiflette.types.interface import GraphQLInterfaceType
 from tartiflette.types.list import GraphQLList
@@ -219,7 +220,7 @@ def parse_value(
 def parse_input_value_definition(
     input_value_definition_node: "InputValueDefinitionNode",
     schema: "GraphQLSchema",
-    as_value: bool = False,
+    as_argument_definition: bool = False,
 ) -> Optional["GraphQLArgument"]:
     """
     Computes an AST input value definition node into a GraphQLArgument
@@ -227,27 +228,28 @@ def parse_input_value_definition(
     :param input_value_definition_node: AST input value definition node to
     treat
     :param schema: the GraphQLSchema schema instance linked to the engine
-    :param as_value: whether or not the default argument value should be
-    computed
+    :param as_argument_definition: determines whether or not the return type
+    should be a GraphQLArgument or a GraphQLInputField
     :type input_value_definition_node: InputValueDefinitionNode
     :type schema: GraphQLSchema
-    :type as_value: bool
+    :type as_argument_definition: bool
     :return: the computed GraphQLArgument instance
     :rtype: Optional[GraphQLArgument]
     """
     if not input_value_definition_node:
         return None
-    return GraphQLArgument(
+
+    object_type = (
+        GraphQLArgument if as_argument_definition else GraphQLInputField
+    )
+
+    return object_type(
         name=parse_name(input_value_definition_node.name, schema),
         description=parse_name(
             input_value_definition_node.description, schema
         ),
         gql_type=parse_type(input_value_definition_node.type, schema),
-        default_value=parse_value(
-            input_value_definition_node.default_value, schema
-        )
-        if as_value
-        else input_value_definition_node.default_value,
+        default_value=input_value_definition_node.default_value,
         directives=input_value_definition_node.directives,
     )
 
@@ -255,18 +257,14 @@ def parse_input_value_definition(
 def parse_arguments_definition(
     argument_definitions_node: List["InputValueDefinitionNode"],
     schema: "GraphQLSchema",
-    as_value: bool = False,
 ) -> Optional[Dict[str, "GraphQLArgument"]]:
     """
     Returns a dictionary of computed GraphQLArgument.
     :param argument_definitions_node: list of AST input value definition
     node to treat
     :param schema: the GraphQLSchema schema instance linked to the engine
-    :param as_value: whether or not the default argument value should be
-    computed
     :type argument_definitions_node: List[InputValueDefinitionNode]
     :type schema: GraphQLSchema
-    :type as_value: bool
     :return: dictionary of computed GraphQLArgument
     :rtype: Optional[Dict[str, GraphQLArgument]]
     """
@@ -276,7 +274,7 @@ def parse_arguments_definition(
     computed_arguments = {}
     for input_value_definition_node in argument_definitions_node:
         computed_argument = parse_input_value_definition(
-            input_value_definition_node, schema, as_value
+            input_value_definition_node, schema, as_argument_definition=True
         )
         computed_arguments[computed_argument.name] = computed_argument
     return computed_arguments
