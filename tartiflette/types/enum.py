@@ -1,5 +1,18 @@
+from functools import partial
 from typing import Any, Dict, List, Optional, Union
 
+from tartiflette.coercers.inputs.directives_coercer import (
+    input_directives_coercer,
+)
+from tartiflette.coercers.inputs.enum_coercer import (
+    enum_coercer as input_enum_coercer,
+)
+from tartiflette.coercers.literals.directives_coercer import (
+    literal_directives_coercer,
+)
+from tartiflette.coercers.literals.enum_coercer import (
+    enum_coercer as literal_enum_coercer,
+)
 from tartiflette.constants import UNDEFINED_VALUE
 from tartiflette.types.helpers.get_directive_instances import (
     compute_directive_nodes,
@@ -111,14 +124,20 @@ class GraphQLEnumType(GraphQLType):
             schema=schema,
         )
         self.values = values
+        self._value_map = {}
+
+        # Directives
         self._directives = directives
+        self._directives_implementations = {}
         self._directives_executors = {
             CoercerWay.OUTPUT: self._output_directives_executor,
             CoercerWay.INPUT: self._input_directives_executor,
         }
         self.directives_definition = None
-        self._directives_implementations = {}
-        self._value_map = {}
+
+        # Coercers
+        self.input_coercer = None
+        self.literal_coercer = None
 
     def __repr__(self) -> str:
         return "{}(name={!r}, values={!r}, description={!r})".format(
@@ -165,30 +184,9 @@ class GraphQLEnumType(GraphQLType):
     ) -> List[GraphQLEnumValue]:
         return self.values
 
-    def bake(self, schema: "GraphQLSchema") -> None:
-        super().bake(schema)
-        self.directives_definition = compute_directive_nodes(
-            self._schema, self._directives
-        )
-        self._directives_implementations = {
-            CoercerWay.OUTPUT: wraps_with_directives(
-                directives_definition=self.directives_definition,
-                directive_hook="on_pre_output_coercion",
-            ),
-            CoercerWay.INPUT: wraps_with_directives(
-                directives_definition=self.directives_definition,
-                directive_hook="on_post_input_coercion",
-            ),
-        }
-
-        self._introspection_directives = wraps_with_directives(
-            directives_definition=self.directives_definition,
-            directive_hook="on_introspection",
-        )
-
-        for value in self.values:
-            value.bake(schema)
-            self._value_map[value.name] = value
+    @property
+    def directives(self):
+        return self._directives_executors
 
     async def _output_directives_executor(self, val, *args, **kwargs):
         if isinstance(val, list):
@@ -234,6 +232,41 @@ class GraphQLEnumType(GraphQLType):
             rval, *args, **kwargs
         )
 
-    @property
-    def directives(self):
-        return self._directives_executors
+    def bake(self, schema: "GraphQLSchema") -> None:
+        super().bake(schema)
+
+        # Directives
+        self.directives_definition = compute_directive_nodes(
+            self._schema, self._directives
+        )
+        self._introspection_directives = wraps_with_directives(
+            directives_definition=self.directives_definition,
+            directive_hook="on_introspection",
+        )
+        post_input_coercion_directives = wraps_with_directives(
+            directives_definition=self.directives_definition,
+            directive_hook="on_post_input_coercion",
+        )
+        self._directives_implementations = {
+            CoercerWay.OUTPUT: wraps_with_directives(
+                directives_definition=self.directives_definition,
+                directive_hook="on_pre_output_coercion",
+            ),
+            CoercerWay.INPUT: post_input_coercion_directives,
+        }
+
+        # Coercers
+        self.input_coercer = partial(
+            input_directives_coercer,
+            coercer=partial(input_enum_coercer, enum=self),
+            directives=post_input_coercion_directives,
+        )
+        self.literal_coercer = partial(
+            literal_directives_coercer,
+            coercer=partial(literal_enum_coercer, enum=self),
+            directives=post_input_coercion_directives,
+        )
+
+        for value in self.values:
+            value.bake(schema)
+            self._value_map[value.name] = value

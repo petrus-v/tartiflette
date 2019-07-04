@@ -1,8 +1,8 @@
 from functools import partial
 from typing import Any, Callable
 
-from tartiflette.coercers.input import get_input_coercer
-from tartiflette.coercers.literal import get_literal_coercer
+from tartiflette.coercers.inputs.compute import get_input_coercer
+from tartiflette.coercers.literals.compute import get_literal_coercer
 from tartiflette.coercers.variables import variable_coercer
 from tartiflette.constants import UNDEFINED_VALUE
 from tartiflette.utils.type_from_ast import schema_type_from_ast

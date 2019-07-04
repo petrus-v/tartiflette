@@ -1,8 +1,14 @@
 from functools import partial
 from typing import Any, Dict, List, Optional, Union
 
-from tartiflette.coercers.arguments import argument_coercer
-from tartiflette.coercers.literal import get_literal_coercer
+from tartiflette.coercers.inputs.compute import get_input_coercer
+from tartiflette.coercers.inputs.directives_coercer import (
+    input_directives_coercer,
+)
+from tartiflette.coercers.literals.compute import get_literal_coercer
+from tartiflette.coercers.literals.directives_coercer import (
+    literal_directives_coercer,
+)
 from tartiflette.types.helpers.get_directive_instances import (
     compute_directive_nodes,
 )
@@ -24,19 +30,21 @@ class GraphQLInputField:
         directives: Optional[List[Dict[str, Optional[dict]]]] = None,
         schema=None,
     ) -> None:
+        self._schema = schema
+        self._type = {}
         self.name = name
         self.gql_type = gql_type
         self.default_value = default_value
         self.description = description
-        self._type = {}
-        self._schema = schema
-        self._directives = directives
-        self.literal_coercer = None
-        self.coercer = None
 
-        # Introspection Attribute
-        self.directives_definition = None
+        # Directives
+        self._directives = directives
         self._introspection_directives = None
+        self.directives_definition = None
+
+        # Coercers
+        self.input_coercer = None
+        self.literal_coercer = None
 
     def __repr__(self) -> str:
         return (
@@ -81,14 +89,6 @@ class GraphQLInputField:
         return self._type
 
     @property
-    def directives(self) -> List[Dict[str, Any]]:
-        return self.directives_definition
-
-    @property
-    def introspection_directives(self):
-        return self._introspection_directives
-
-    @property
     def is_required(self) -> bool:
         if not isinstance(self.gql_type, GraphQLType):
             return False
@@ -98,16 +98,22 @@ class GraphQLInputField:
     def defaultValue(self) -> Any:  # pylint: disable=invalid-name
         return self.default_value
 
+    @property
+    def is_list_type(self) -> bool:
+        if not isinstance(self.gql_type, str):
+            return self.gql_type.is_list or self.gql_type.contains_a_list
+        return False
+
+    @property
+    def directives(self) -> List[Dict[str, Any]]:
+        return self.directives_definition
+
+    @property
+    def introspection_directives(self):
+        return self._introspection_directives
+
     def bake(self, schema: "GraphQLSchema") -> None:
         self._schema = schema
-        self.directives_definition = compute_directive_nodes(
-            self._schema, self._directives
-        )
-
-        self._introspection_directives = wraps_with_directives(
-            directives_definition=self.directives_definition,
-            directive_hook="on_introspection",
-        )
 
         if isinstance(self.gql_type, GraphQLType):
             self._type = self.gql_type
@@ -115,17 +121,28 @@ class GraphQLInputField:
             self._type["name"] = self.gql_type
             self._type["kind"] = self._schema.find_type(self.gql_type).kind
 
-        self.literal_coercer = get_literal_coercer(self.graphql_type)
-        self.coercer = partial(
-            argument_coercer,
-            directives=wraps_with_directives(
-                directives_definition=self.directives_definition,
-                directive_hook="on_argument_execution",
-            ),
+        # Directives
+        self.directives_definition = compute_directive_nodes(
+            self._schema, self._directives
+        )
+        self._introspection_directives = wraps_with_directives(
+            directives_definition=self.directives_definition,
+            directive_hook="on_introspection",
+        )
+        post_input_coercion_directives = wraps_with_directives(
+            directives_definition=self.directives_definition,
+            directive_hook="on_post_input_coercion",
         )
 
-    @property
-    def is_list_type(self) -> bool:
-        if not isinstance(self.gql_type, str):
-            return self.gql_type.is_list or self.gql_type.contains_a_list
-        return False
+        # Coercers
+        self.input_coercer = partial(
+            input_directives_coercer,
+            coercer=get_input_coercer(self.graphql_type),
+            directives=post_input_coercion_directives,
+        )
+        self.literal_coercer = partial(
+            literal_directives_coercer,
+            coercer=get_literal_coercer(self.graphql_type),
+            directives=post_input_coercion_directives,
+            is_input_field=True,
+        )

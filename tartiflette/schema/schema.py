@@ -430,6 +430,7 @@ class GraphQLSchema:
                 if (
                     gql_type.coerce_output is None
                     or gql_type.coerce_input is None
+                    or gql_type.parse_literal is None
                 ):
                     errors.append(
                         f"Scalar < {type_name} > "

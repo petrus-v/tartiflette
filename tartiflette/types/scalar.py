@@ -1,5 +1,18 @@
+from functools import partial
 from typing import Any, Dict, List, Optional, Union
 
+from tartiflette.coercers.inputs.directives_coercer import (
+    input_directives_coercer,
+)
+from tartiflette.coercers.inputs.scalar_coercer import (
+    scalar_coercer as input_scalar_coercer,
+)
+from tartiflette.coercers.literals.directives_coercer import (
+    literal_directives_coercer,
+)
+from tartiflette.coercers.literals.scalar_coercer import (
+    scalar_coercer as literal_scalar_coercer,
+)
 from tartiflette.types.helpers.get_directive_instances import (
     compute_directive_nodes,
 )
@@ -29,12 +42,17 @@ class GraphQLScalarType(GraphQLType):
         schema: Optional["GraphQLSchema"] = None,
     ) -> None:
         super().__init__(name=name, description=description, schema=schema)
+        # Directives
+        self._directives = directives
+        self._directives_implementations = {}
+        self.directives_definition = None
+
+        # Coercers
         self.coerce_output = None
         self.coerce_input = None
         self.parse_literal = None
-        self._directives = directives
-        self.directives_definition = None
-        self._directives_implementations = {}
+        self.input_coercer = None
+        self.literal_coercer = None
 
     def __repr__(self) -> str:
         return "{}(name={!r}, description={!r})".format(
@@ -55,27 +73,41 @@ class GraphQLScalarType(GraphQLType):
     def kind(self) -> str:
         return "SCALAR"
 
-    def bake(self, schema):
+    @property
+    def directives(self):
+        return self._directives_implementations
+
+    def bake(self, schema: "GraphQLSchema") -> None:
         super().bake(schema)
+
+        # Directives
         self.directives_definition = compute_directive_nodes(
             self._schema, self._directives
+        )
+        self._introspection_directives = wraps_with_directives(
+            directives_definition=self.directives_definition,
+            directive_hook="on_introspection",
+        )
+        post_input_coercion_directives = wraps_with_directives(
+            directives_definition=self.directives_definition,
+            directive_hook="on_post_input_coercion",
         )
         self._directives_implementations = {
             CoercerWay.OUTPUT: wraps_with_directives(
                 directives_definition=self.directives_definition,
                 directive_hook="on_pre_output_coercion",
             ),
-            CoercerWay.INPUT: wraps_with_directives(
-                directives_definition=self.directives_definition,
-                directive_hook="on_post_input_coercion",
-            ),
+            CoercerWay.INPUT: post_input_coercion_directives,
         }
 
-        self._introspection_directives = wraps_with_directives(
-            directives_definition=self.directives_definition,
-            directive_hook="on_introspection",
+        # Coercers
+        self.input_coercer = partial(
+            input_directives_coercer,
+            coercer=partial(input_scalar_coercer, scalar=self),
+            directives=post_input_coercion_directives,
         )
-
-    @property
-    def directives(self):
-        return self._directives_implementations
+        self.literal_coercer = partial(
+            literal_directives_coercer,
+            coercer=partial(literal_scalar_coercer, scalar=self),
+            directives=post_input_coercion_directives,
+        )

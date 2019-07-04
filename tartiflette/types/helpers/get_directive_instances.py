@@ -1,6 +1,8 @@
 from functools import partial
 from typing import Any, Callable, Dict, List, Optional
 
+from tartiflette.coercers.arguments import coerce_arguments
+
 
 def get_callables(implementation: Any) -> Dict[str, Callable]:
     """
@@ -54,9 +56,6 @@ def compute_directive_nodes(
     :return: list of pre-computed directives
     :rtype: List[Dict[str, Any]]
     """
-    # TODO: tmp fix for cyclic imports
-    from tartiflette.coercers.arguments import coerce_arguments
-
     if not directive_nodes:
         return []
 

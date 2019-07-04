@@ -1,6 +1,7 @@
 from functools import partial
 from typing import Any, Callable, List, Optional, Union
 
+from tartiflette.coercers.arguments import coerce_arguments
 from tartiflette.execution.types import build_resolve_info
 from tartiflette.resolver.default import default_field_resolver
 from tartiflette.types.helpers.get_directive_instances import (
@@ -122,7 +123,6 @@ async def resolve_field_value_or_error(
     """
     # pylint: disable=too-many-locals
     # TODO: tmp fix for cyclic imports
-    from tartiflette.coercers.arguments import coerce_arguments
     from tartiflette.types.helpers.definition import get_wrapped_type
 
     try:
