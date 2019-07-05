@@ -36,16 +36,22 @@ class GraphQLEnumValue:
             List[Dict[str, Union[str, Dict[str, Any]]]]
         ] = None,
     ) -> None:
+        self._schema = None
         self.value = value
         self.description = description
-        self._directives = directives
-        self._schema = None
-        self.directives_definition = None
-        self._directives_implementations = None
-        self._introspection_directives = None
 
         # Introspection Attribute
         self.isDeprecated = False  # pylint: disable=invalid-name
+
+        # Directives
+        self._directives = directives
+        self._directives_implementations = None
+        self._introspection_directives = None
+        self.directives_definition = None
+
+        # Coercers
+        self.input_coercer = None
+        self.literal_coercer = None
 
     def __repr__(self) -> str:
         return "{}(value={!r}, description={!r})".format(
@@ -82,16 +88,21 @@ class GraphQLEnumValue:
             CoercerWay.OUTPUT: wraps_with_directives(
                 directives_definition=self.directives_definition,
                 directive_hook="on_pre_output_coercion",
-            ),
-            CoercerWay.INPUT: wraps_with_directives(
-                directives_definition=self.directives_definition,
-                directive_hook="on_post_input_coercion",
-            ),
+            )
         }
 
         self._introspection_directives = wraps_with_directives(
             directives_definition=self.directives_definition,
             directive_hook="on_introspection",
+        )
+
+        self.input_coercer = wraps_with_directives(
+            directives_definition=self.directives_definition,
+            directive_hook="on_post_input_coercion",
+        )
+        self.literal_coercer = wraps_with_directives(
+            directives_definition=self.directives_definition,
+            directive_hook="on_post_input_coercion",
         )
 
 
@@ -130,8 +141,7 @@ class GraphQLEnumType(GraphQLType):
         self._directives = directives
         self._directives_implementations = {}
         self._directives_executors = {
-            CoercerWay.OUTPUT: self._output_directives_executor,
-            CoercerWay.INPUT: self._input_directives_executor,
+            CoercerWay.OUTPUT: self._output_directives_executor
         }
         self.directives_definition = None
 
@@ -207,31 +217,6 @@ class GraphQLEnumType(GraphQLType):
             val, *args, **kwargs
         )
 
-    async def _input_directives_executor(self, val, *args, **kwargs):
-        # Call Type Directives
-        rval = await self._directives_implementations[CoercerWay.INPUT](
-            val, *args, **kwargs
-        )
-
-        # Manage the fact that, val can be inputed as None.
-        if val is None:
-            return rval
-
-        # Call Value Directives
-        # This is done POST coercion, so VAL exists in map
-        if isinstance(val, list):
-            return [
-                None
-                if raw_item is None
-                else await self._value_map[raw_item].directives[
-                    CoercerWay.INPUT
-                ](result_item, *args, **kwargs)
-                for raw_item, result_item in zip(val, rval)
-            ]
-        return await self._value_map[val].directives[CoercerWay.INPUT](
-            rval, *args, **kwargs
-        )
-
     def bake(self, schema: "GraphQLSchema") -> None:
         super().bake(schema)
 
@@ -251,19 +236,18 @@ class GraphQLEnumType(GraphQLType):
             CoercerWay.OUTPUT: wraps_with_directives(
                 directives_definition=self.directives_definition,
                 directive_hook="on_pre_output_coercion",
-            ),
-            CoercerWay.INPUT: post_input_coercion_directives,
+            )
         }
 
         # Coercers
         self.input_coercer = partial(
             input_directives_coercer,
-            coercer=partial(input_enum_coercer, enum=self),
+            coercer=partial(input_enum_coercer, enum_type=self),
             directives=post_input_coercion_directives,
         )
         self.literal_coercer = partial(
             literal_directives_coercer,
-            coercer=partial(literal_enum_coercer, enum=self),
+            coercer=partial(literal_enum_coercer, enum_type=self),
             directives=post_input_coercion_directives,
         )
 

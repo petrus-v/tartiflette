@@ -11,7 +11,7 @@ from tartiflette.utils.values import is_invalid_value
 async def scalar_coercer(
     node: Union["ValueNode", "VariableNode"],
     ctx: Optional[Any],
-    scalar: "GraphQLScalarType",
+    scalar_type: "GraphQLScalarType",
     *args,
     variables: Optional[Dict[str, Any]] = None,
     **kwargs,
@@ -20,18 +20,18 @@ async def scalar_coercer(
     Computes the value of a scalar.
     :param node: the AST node to treat
     :param ctx: context passed to the query execution
-    :param scalar: the GraphQLScalarType instance of the scalar
+    :param scalar_type: the GraphQLScalarType instance of the scalar
     :param variables: the variables used in the GraphQL request
     :type node: Union[ValueNode, VariableNode]
     :type ctx: Optional[Any]
-    :type scalar: GraphQLScalarType
+    :type scalar_type: GraphQLScalarType
     :type variables: Optional[Dict[str, Any]]
     :return: the computed value
     :rtype: Any
     """
     # pylint: disable=unused-argument
     try:
-        value = scalar.parse_literal(node)
+        value = scalar_type.parse_literal(node)
         if not is_invalid_value(value):
             return value
     except Exception:  # pylint: disable=broad-except

@@ -103,11 +103,11 @@ class GraphQLScalarType(GraphQLType):
         # Coercers
         self.input_coercer = partial(
             input_directives_coercer,
-            coercer=partial(input_scalar_coercer, scalar=self),
+            coercer=partial(input_scalar_coercer, scalar_type=self),
             directives=post_input_coercion_directives,
         )
         self.literal_coercer = partial(
             literal_directives_coercer,
-            coercer=partial(literal_scalar_coercer, scalar=self),
+            coercer=partial(literal_scalar_coercer, scalar_type=self),
             directives=post_input_coercion_directives,
         )

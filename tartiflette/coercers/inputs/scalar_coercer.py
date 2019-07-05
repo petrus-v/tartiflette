@@ -10,7 +10,7 @@ async def scalar_coercer(
     node: "Node",
     value: Any,
     ctx: Optional[Any],
-    scalar: "GraphQLScalarType",
+    scalar_type: "GraphQLScalarType",
     *args,
     path: Optional["Path"] = None,
     **kwargs,
@@ -20,24 +20,24 @@ async def scalar_coercer(
     :param node: the AST node to treat
     :param value: the raw value to compute
     :param ctx: context passed to the query execution
-    :param scalar: the GraphQLScalarType instance of the scalar
+    :param scalar_type: the GraphQLScalarType instance of the scalar
     :param path: the path traveled until this coercer
     :type node: Node
     :type value: Any
     :type ctx: Optional[Any]
-    :type scalar: GraphQLScalarType
+    :type scalar_type: GraphQLScalarType
     :type path: Optional[Path]
     :return: the coercion result
     :rtype: CoercionResult
     """
     # pylint: disable=unused-argument
     try:
-        coerced_value = scalar.coerce_input(value)
+        coerced_value = scalar_type.coerce_input(value)
         if is_invalid_value(coerced_value):
             return CoercionResult(
                 errors=[
                     coercion_error(
-                        f"Expected type < {scalar.name} >", node, path
+                        f"Expected type < {scalar_type.name} >", node, path
                     )
                 ]
             )
@@ -45,7 +45,7 @@ async def scalar_coercer(
         return CoercionResult(
             errors=[
                 coercion_error(
-                    f"Expected type < {scalar.name} >",
+                    f"Expected type < {scalar_type.name} >",
                     node,
                     path,
                     sub_message=str(e),

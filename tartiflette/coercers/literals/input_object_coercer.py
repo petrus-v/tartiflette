@@ -13,7 +13,7 @@ from tartiflette.utils.values import is_invalid_value
 async def input_object_coercer(
     node: Union["ValueNode", "VariableNode"],
     ctx: Optional[Any],
-    input_object: "GraphQLInputObjectType",
+    input_object_type: "GraphQLInputObjectType",
     *args,
     variables: Optional[Dict[str, Any]] = None,
     **kwargs,
@@ -22,12 +22,12 @@ async def input_object_coercer(
     Computes the value of an input object.
     :param node: the AST node to treat
     :param ctx: context passed to the query execution
-    :param input_object: the GraphQLInputObjectType instance of the input
+    :param input_object_type: the GraphQLInputObjectType instance of the input
     object
     :param variables: the variables used in the GraphQL request
     :type node: Union[ValueNode, VariableNode]
     :type ctx: Optional[Any]
-    :type input_object: GraphQLInputObjectType
+    :type input_object_type: GraphQLInputObjectType
     :type variables: Optional[Dict[str, Any]]
     :return: the computed value
     :rtype: Any
@@ -42,7 +42,7 @@ async def input_object_coercer(
     field_nodes = {
         field_node.name.value: field_node for field_node in node.fields
     }
-    input_fields = input_object.arguments
+    input_fields = input_object_type.arguments
 
     coerced_object = {}
     for input_field_name, input_field in input_fields.items():

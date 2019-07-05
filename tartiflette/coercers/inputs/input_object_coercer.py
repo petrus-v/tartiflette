@@ -64,7 +64,7 @@ async def input_object_coercer(
     node: "Node",
     value: Any,
     ctx: Optional[Any],
-    input_object: "GraphQLInputObjectType",
+    input_object_type: "GraphQLInputObjectType",
     *args,
     path: Optional["Path"] = None,
     **kwargs,
@@ -74,13 +74,13 @@ async def input_object_coercer(
     :param node: the AST node to treat
     :param value: the raw value to compute
     :param ctx: context passed to the query execution
-    :param input_object: the GraphQLInputObjectType instance of the input
+    :param input_object_type: the GraphQLInputObjectType instance of the input
     object
     :param path: the path traveled until this coercer
     :type node: Node
     :type value: Any
     :type ctx: Optional[Any]
-    :type input_object: GraphQLInputObjectType
+    :type input_object_type: GraphQLInputObjectType
     :type path: Optional[Path]
     :return: the coercion result
     :rtype: CoercionResult
@@ -90,14 +90,14 @@ async def input_object_coercer(
         return CoercionResult(
             errors=[
                 coercion_error(
-                    f"Expected type < {input_object.name} > to be an object",
+                    f"Expected type < {input_object_type.name} > to be an object",
                     node,
                     path,
                 )
             ]
         )
 
-    input_fields = input_object.arguments
+    input_fields = input_object_type.arguments
 
     results = await asyncio.gather(
         *[
@@ -134,7 +134,7 @@ async def input_object_coercer(
             errors.append(
                 coercion_error(
                     f"Field < {input_field_name} > is not defined by type "
-                    f"< {input_object.name} >",
+                    f"< {input_object_type.name} >",
                     node,
                     path,
                 )
