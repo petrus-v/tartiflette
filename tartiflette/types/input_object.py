@@ -41,6 +41,7 @@ class GraphQLInputObjectType(GraphQLType):
 
         # Directives
         self.directives = directives
+        self.introspection_directives: Optional[Callable] = None
 
         # Coercers
         self.input_coercer: Optional[Callable] = None
@@ -105,7 +106,7 @@ class GraphQLInputObjectType(GraphQLType):
         directives_definition = compute_directive_nodes(
             schema, self.directives
         )
-        self._introspection_directives = wraps_with_directives(
+        self.introspection_directives = wraps_with_directives(
             directives_definition=directives_definition,
             directive_hook="on_introspection",
         )

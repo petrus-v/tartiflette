@@ -4,6 +4,10 @@ from typing import Any, Callable, List, Optional, Union
 from tartiflette.coercers.arguments import coerce_arguments
 from tartiflette.execution.types import build_resolve_info
 from tartiflette.resolver.default import default_field_resolver
+from tartiflette.types.helpers.definition import (
+    get_wrapped_type,
+    is_non_null_type,
+)
 from tartiflette.types.helpers.get_directive_instances import (
     compute_directive_nodes,
 )
@@ -34,8 +38,6 @@ def handle_field_error(
     :type execution_context: ExecutionContext
     :rtype: None
     """
-    # TODO: tmp fix for cyclic imports
-    from tartiflette.types.helpers.definition import is_non_null_type
 
     error = located_error(raw_error, field_nodes, path.as_list())
 
@@ -122,9 +124,6 @@ async def resolve_field_value_or_error(
     :rtype: Union[Exception, Any]
     """
     # pylint: disable=too-many-locals
-    # TODO: tmp fix for cyclic imports
-    from tartiflette.types.helpers.definition import get_wrapped_type
-
     try:
         computed_directives = []
         for field_node in field_nodes:

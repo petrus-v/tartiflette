@@ -15,7 +15,6 @@ class GraphQLType:
         self.name = name
         self.description = description
         self.schema = schema
-        self._introspection_directives = None
 
     def __eq__(self, other: Any) -> bool:
         """
