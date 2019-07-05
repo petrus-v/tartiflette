@@ -11,10 +11,9 @@ class GraphQLNonNull(GraphQLType):
     def __init__(
         self,
         gql_type: Union["GraphQLList", str],
-        description: Optional[str] = None,
         schema: Optional["GraphQLSchema"] = None,
     ) -> None:
-        super().__init__(name=None, description=description, schema=schema)
+        super().__init__(schema)
         self.gql_type = gql_type
 
     def __eq__(self, other: Any) -> bool:
@@ -27,9 +26,7 @@ class GraphQLNonNull(GraphQLType):
         """
         return self is other or (
             isinstance(other, GraphQLNonNull)
-            and self.name == other.name  # TODO: useless isn't?
             and self.gql_type == other.gql_type
-            and self.description == other.description
         )
 
     def __repr__(self) -> str:
@@ -38,9 +35,7 @@ class GraphQLNonNull(GraphQLType):
         :return: the representation of a GraphQLNonNull instance
         :rtype: str
         """
-        return "GraphQLNonNull(gql_type={!r}, description={!r})".format(
-            self.gql_type, self.description
-        )
+        return "GraphQLNonNull(gql_type={!r})".format(self.gql_type)
 
     def __str__(self) -> str:
         """

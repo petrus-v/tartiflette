@@ -33,7 +33,9 @@ class GraphQLScalarType(GraphQLType):
         directives: Optional[List["DirectiveNode"]] = None,
         schema: Optional["GraphQLSchema"] = None,
     ) -> None:
-        super().__init__(name=name, description=description, schema=schema)
+        super().__init__(schema)
+        self.name = name
+        self.description = description
 
         # Directives
         # TODO: rename it into `self.directives` when removing the @property
@@ -76,6 +78,14 @@ class GraphQLScalarType(GraphQLType):
         return "GraphQLScalarType(name={!r}, description={!r})".format(
             self.name, self.description
         )
+
+    def __str__(self) -> str:
+        """
+        Returns a human-readable representation of the scalar.
+        :return: a human-readable representation of the scalar
+        :rtype: str
+        """
+        return self.name
 
     # Introspection Attribute
     @property

@@ -33,8 +33,10 @@ class GraphQLInputObjectType(GraphQLType):
         directives: Optional[List["DirectiveNode"]] = None,
         schema: Optional["GraphQLSchema"] = None,
     ) -> None:
-        super().__init__(name=name, description=description, schema=schema)
+        super().__init__(schema)
+        self.name = name
         self._fields = fields
+        self.description = description
         self._input_fields: List["GraphQLInputField"] = list(
             self._fields.values()
         )
@@ -75,6 +77,14 @@ class GraphQLInputObjectType(GraphQLType):
                 self.name, self._fields, self.description, self.directives
             )
         )
+
+    def __str__(self) -> str:
+        """
+        Returns a human-readable representation of the input object.
+        :return: a human-readable representation of the input object
+        :rtype: str
+        """
+        return self.name
 
     # Introspection Attribute
     @property

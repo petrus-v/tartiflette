@@ -20,8 +20,10 @@ class GraphQLUnionType(GraphQLType):
         directives: Optional[List["DirectiveNode"]] = None,
         schema: Optional["GraphQLSchema"] = None,
     ) -> None:
-        super().__init__(name=name, description=description, schema=schema)
+        super().__init__(schema)
+        self.name = name
         self.gql_types = gql_types
+        self.description = description
         self._possible_types: List["GraphQLType"] = []
         self._possible_types_set: Set[str] = set()
         self._fields: Dict[str, "GraphQLField"] = {}
@@ -61,6 +63,14 @@ class GraphQLUnionType(GraphQLType):
                 self.name, self.gql_types, self.description, self._directives
             )
         )
+
+    def __str__(self) -> str:
+        """
+        Returns a human-readable representation of the union.
+        :return: a human-readable representation of the union
+        :rtype: str
+        """
+        return self.name
 
     # Introspection Attribute
     @property

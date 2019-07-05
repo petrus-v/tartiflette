@@ -146,8 +146,10 @@ class GraphQLEnumType(GraphQLType):
         directives: Optional[List["DirectiveNode"]] = None,
         schema: Optional["GraphQLSchema"] = None,
     ) -> None:
-        super().__init__(name=name, description=description, schema=schema)
+        super().__init__(schema)
+        self.name = name
         self.values = values
+        self.description = description
         self._value_map: Dict[str, "GraphQLEnumValue"] = {}
 
         # Directives
@@ -192,6 +194,14 @@ class GraphQLEnumType(GraphQLType):
                 self.name, self.values, self.description, self._directives
             )
         )
+
+    def __str__(self) -> str:
+        """
+        Returns a human-readable representation of the enum type.
+        :return: a human-readable representation of the enum type
+        :rtype: str
+        """
+        return self.name
 
     # Introspection Attribute
     @property

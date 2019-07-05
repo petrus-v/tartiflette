@@ -21,8 +21,10 @@ class GraphQLInterfaceType(GraphQLType):
         directives: Optional[List["DirectiveNode"]] = None,
         schema: Optional["GraphQLSchema"] = None,
     ) -> None:
-        super().__init__(name=name, description=description, schema=schema)
+        super().__init__(schema)
+        self.name = name
         self._fields = fields
+        self.description = description
         self._possible_types: List["GraphQLObjectType"] = []
 
         # Directives
@@ -60,6 +62,14 @@ class GraphQLInterfaceType(GraphQLType):
                 self.name, self._fields, self.description, self._directives
             )
         )
+
+    def __str__(self) -> str:
+        """
+        Returns a human-readable representation of the interface.
+        :return: a human-readable representation of the interface
+        :rtype: str
+        """
+        return self.name
 
     # Introspection Attribute
     @property

@@ -6,14 +6,7 @@ class GraphQLType:
     Definition of a GraphQL type.
     """
 
-    def __init__(
-        self,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
-        schema: Optional["GraphQLSchema"] = None,
-    ) -> None:
-        self.name = name
-        self.description = description
+    def __init__(self, schema: Optional["GraphQLSchema"] = None) -> None:
         self.schema = schema
 
     def __eq__(self, other: Any) -> bool:
@@ -24,11 +17,7 @@ class GraphQLType:
         :return: whether or not `other` is identical to `self`
         :rtype: bool
         """
-        return self is other or (
-            type(self) is type(other)
-            and self.name == other.name
-            and self.description == other.description
-        )
+        return self is other or type(self) is type(other)
 
     def __repr__(self) -> str:
         """
@@ -36,17 +25,7 @@ class GraphQLType:
         :return: the representation of a GraphQLType instance
         :rtype: str
         """
-        return "{}(name={!r}, description={!r})".format(
-            self.__class__.__name__, self.name, self.description
-        )
-
-    def __str__(self) -> str:
-        """
-        Returns a human-readable representation of the type.
-        :return: a human-readable representation of the type
-        :rtype: str
-        """
-        return "{!s}".format(self.name)
+        return "{}()".format(self.__class__.__name__)
 
     # Introspection Attribute
     @property
