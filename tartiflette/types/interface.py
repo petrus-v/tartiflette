@@ -1,79 +1,130 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
-from tartiflette.types.field import GraphQLField
 from tartiflette.types.helpers.get_directive_instances import (
     compute_directive_nodes,
 )
 from tartiflette.types.type import GraphQLType
+from tartiflette.utils.coercer_way import CoercerWay
 from tartiflette.utils.directives import wraps_with_directives
 
 
 class GraphQLInterfaceType(GraphQLType):
     """
-    Interface Type Definition
-
-    It's an abstract type meaning that its purpose is to define a contract
-    and enforce it on one or many fields of an Object type.
-    The Interface type is used to describe what types are possible,
-    what fields are in common across all types, as well as a
-    function to determine which type is actually used
-    when the field is resolved.
+    Definition of a GraphQL interface.
     """
 
     def __init__(
         self,
         name: str,
-        fields: Dict[str, GraphQLField],
+        fields: Dict[str, "GraphQLField"],
         description: Optional[str] = None,
+        directives: Optional[List["DirectiveNode"]] = None,
         schema: Optional["GraphQLSchema"] = None,
-        directives=None,
     ) -> None:
         super().__init__(name=name, description=description, schema=schema)
         self._fields = fields
-        self._possible_types = []
-        self._directives = directives
+        self._possible_types: List["GraphQLObjectType"] = []
 
-    def __repr__(self) -> str:
-        return "{}(name={!r}, fields={!r}, description={!r})".format(
-            self.__class__.__name__, self.name, self._fields, self.description
-        )
+        # Directives
+        # TODO: we should be able to rename it to `self.directives` when
+        # `coercion_output` will be properly managed
+        self._directives = directives
+        self.introspection_directives: Optional[Callable] = None
+        self._directives_implementations: Dict[int, Callable] = {}
 
     def __eq__(self, other: Any) -> bool:
-        return super().__eq__(other) and self._fields == other._fields
+        """
+        Returns True if `other` instance is identical to `self`.
+        :param other: object instance to compare to `self`
+        :type other: Any
+        :return: whether or not `other` is identical to `self`
+        :rtype: bool
+        """
+        return self is other or (
+            isinstance(other, GraphQLInterfaceType)
+            and self.name == other.name
+            and self._fields == other._fields  # TODO: ugly?
+            and self.description == other.description
+            # and self.directives == other.directives  # TODO: un-comment it
+        )
+
+    def __repr__(self) -> str:
+        """
+        Returns the representation of a GraphQLInterfaceType instance.
+        :return: the representation of a GraphQLInterfaceType instance
+        :rtype: str
+        """
+        return (
+            "GraphQLInterfaceType(name={!r}, fields={!r}, "
+            "description={!r}, directives={!r})".format(
+                self.name, self._fields, self.description, self._directives
+            )
+        )
 
     # Introspection Attribute
     @property
     def kind(self) -> str:
         return "INTERFACE"
 
-    def find_field(self, name: str) -> GraphQLField:
-        return self._fields[name]
-
+    # Introspection Attribute
     @property
-    def fields(self) -> List[GraphQLField]:
+    def possibleTypes(  # pylint: disable=invalid-name
+        self
+    ) -> List["GraphQLObjectType"]:
+        return self._possible_types
+
+    # Introspection Attribute?
+    @property
+    def fields(self) -> List["GraphQLField"]:
         try:
             return [
-                self._fields[x] for x in self._fields if not x.startswith("__")
+                self._fields[field_name]
+                for field_name in self._fields
+                if not field_name.startswith("__")
             ]
         except (AttributeError, TypeError):
             pass
         return []
 
-    def bake(self, schema):
+    @property
+    def directives(self) -> Dict[int, Callable]:
+        # TODO: we should be able to remove this when `coercion_output` will be
+        # properly managed
+        return self._directives_implementations
+
+    def find_field(self, name: str) -> "GraphQLField":
+        return self._fields[name]
+
+    def bake(self, schema: "GraphQLSchema") -> None:
+        """
+        Bakes the GraphQLInterfaceType and computes all the necessary stuff for
+        execution.
+        :param schema: the GraphQLSchema schema instance linked to the engine
+        :type schema: GraphQLSchema
+        """
         super().bake(schema)
 
-        self._introspection_directives = wraps_with_directives(
-            directives_definition=compute_directive_nodes(
-                self._schema, self._directives
-            ),
+        # Directives
+        directives_definition = compute_directive_nodes(
+            schema, self._directives
+        )
+        self._directives_implementations = {
+            CoercerWay.OUTPUT: wraps_with_directives(
+                directives_definition=directives_definition,
+                directive_hook="on_pre_output_coercion",
+            )
+        }
+        self.introspection_directives = wraps_with_directives(
+            directives_definition=directives_definition,
             directive_hook="on_introspection",
         )
 
-    def bake_fields(self, custom_default_resolver):
+    def bake_fields(self, custom_default_resolver: Optional[Callable]) -> None:
+        """
+        Bakes interface's fields.
+        :param custom_default_resolver: callable that will replace the builtin
+        default_resolver
+        :type custom_default_resolver: Optional[Callable]
+        """
         for field in self._fields.values():
-            field.bake(self._schema, self, custom_default_resolver)
-
-    # introspection attribute
-    @property
-    def possibleTypes(self) -> list:  # pylint: disable=invalid-name
-        return self._possible_types
+            field.bake(self.schema, custom_default_resolver)

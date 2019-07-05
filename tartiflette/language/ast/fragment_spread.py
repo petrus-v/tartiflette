@@ -38,11 +38,9 @@ class FragmentSpreadNode(SelectionNode):
         """
         return self is other or (
             isinstance(other, FragmentSpreadNode)
-            and (
-                self.name == other.name
-                and self.directives == other.directives
-                and self.location == other.location
-            )
+            and self.name == other.name
+            and self.directives == other.directives
+            and self.location == other.location
         )
 
     def __repr__(self) -> str:

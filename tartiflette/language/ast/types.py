@@ -36,7 +36,8 @@ class ListTypeNode(TypeNode):
         """
         return self is other or (
             isinstance(other, ListTypeNode)
-            and (self.type == other.type and self.location == other.location)
+            and self.type == other.type
+            and self.location == other.location
         )
 
     def __repr__(self) -> str:
@@ -92,7 +93,8 @@ class NonNullTypeNode(TypeNode):
         """
         return self is other or (
             isinstance(other, NonNullTypeNode)
-            and (self.type == other.type and self.location == other.location)
+            and self.type == other.type
+            and self.location == other.location
         )
 
     def __repr__(self) -> str:

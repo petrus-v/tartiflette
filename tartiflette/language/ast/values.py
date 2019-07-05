@@ -32,7 +32,8 @@ class BooleanValueNode(ValueNode):
         """
         return self is other or (
             isinstance(other, BooleanValueNode)
-            and (self.value == other.value and self.location == other.location)
+            and self.value == other.value
+            and self.location == other.location
         )
 
     def __repr__(self) -> str:
@@ -84,7 +85,8 @@ class EnumValueNode(ValueNode):
         """
         return self is other or (
             isinstance(other, EnumValueNode)
-            and (self.value == other.value and self.location == other.location)
+            and self.value == other.value
+            and self.location == other.location
         )
 
     def __repr__(self) -> str:
@@ -136,7 +138,8 @@ class FloatValueNode(ValueNode):
         """
         return self is other or (
             isinstance(other, FloatValueNode)
-            and (self.value == other.value and self.location == other.location)
+            and self.value == other.value
+            and self.location == other.location
         )
 
     def __repr__(self) -> str:
@@ -188,7 +191,8 @@ class IntValueNode(ValueNode):
         """
         return self is other or (
             isinstance(other, IntValueNode)
-            and (self.value == other.value and self.location == other.location)
+            and self.value == other.value
+            and self.location == other.location
         )
 
     def __repr__(self) -> str:
@@ -236,7 +240,8 @@ class NullValueNode(ValueNode):
         """
         return self is other or (
             isinstance(other, NullValueNode)
-            and (self.value == other.value and self.location == other.location)
+            and self.value == other.value
+            and self.location == other.location
         )
 
     def __repr__(self) -> str:
@@ -285,7 +290,8 @@ class StringValueNode(ValueNode):
         """
         return self is other or (
             isinstance(other, StringValueNode)
-            and (self.value == other.value and self.location == other.location)
+            and self.value == other.value
+            and self.location == other.location
         )
 
     def __repr__(self) -> str:
@@ -337,9 +343,8 @@ class ListValueNode(ValueNode):
         """
         return self is other or (
             isinstance(other, ListValueNode)
-            and (
-                self.values == other.values and self.location == other.location
-            )
+            and self.values == other.values
+            and self.location == other.location
         )
 
     def __repr__(self) -> str:
@@ -397,11 +402,9 @@ class ObjectFieldNode(Node):
         """
         return self is other or (
             isinstance(other, ObjectFieldNode)
-            and (
-                self.name == other.name
-                and self.value == other.value
-                and self.location == other.location
-            )
+            and self.name == other.name
+            and self.value == other.value
+            and self.location == other.location
         )
 
     def __repr__(self) -> str:
@@ -456,9 +459,8 @@ class ObjectValueNode(ValueNode):
         """
         return self is other or (
             isinstance(other, ObjectValueNode)
-            and (
-                self.fields == other.fields and self.location == other.location
-            )
+            and self.fields == other.fields
+            and self.location == other.location
         )
 
     def __repr__(self) -> str:

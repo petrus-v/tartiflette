@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional
 
 from tartiflette.coercers.inputs.directives_coercer import (
     input_directives_coercer,
@@ -23,49 +23,58 @@ from tartiflette.utils.directives import wraps_with_directives
 
 class GraphQLScalarType(GraphQLType):
     """
-    Scalar Type Definition
-
-    The leaf values of any request and input values to arguments are
-    Scalars (or Enums which are special Scalars) and are defined with a name
-    and a series of functions used to convert to and from the request or SDL.
-
-    Example: see the default Int, String or Boolean scalars.
+    Definition of a GraphQL scalar.
     """
 
     def __init__(
         self,
         name: str,
         description: Optional[str] = None,
-        directives: Optional[
-            List[Dict[str, Union[str, Dict[str, Any]]]]
-        ] = None,
+        directives: Optional[List["DirectiveNode"]] = None,
         schema: Optional["GraphQLSchema"] = None,
     ) -> None:
         super().__init__(name=name, description=description, schema=schema)
+
         # Directives
+        # TODO: rename it into `self.directives` when removing the @property
         self._directives = directives
-        self._directives_implementations = {}
-        self.directives_definition = None
+        self._directives_implementations: Dict[int, Callable] = {}
+        self.introspection_directives: Optional[Callable] = None
 
         # Coercers
-        self.coerce_output = None
-        self.coerce_input = None
-        self.parse_literal = None
-        self.input_coercer = None
-        self.literal_coercer = None
-
-    def __repr__(self) -> str:
-        return "{}(name={!r}, description={!r})".format(
-            self.__class__.__name__, self.name, self.description
-        )
+        self.coerce_output: Optional[Callable] = None
+        self.coerce_input: Optional[Callable] = None
+        self.parse_literal: Optional[Callable] = None
+        self.input_coercer: Optional[Callable] = None
+        self.literal_coercer: Optional[Callable] = None
 
     def __eq__(self, other: Any) -> bool:
-        # TODO: Comparing function pointers is not ideal here...
-        return (
-            super().__eq__(other)
+        """
+        Returns True if `other` instance is identical to `self`.
+        :param other: object instance to compare to `self`
+        :type other: Any
+        :return: whether or not `other` is identical to `self`
+        :rtype: bool
+        """
+        # TODO: comparing function pointers isn't ideal
+        return self is other or (
+            isinstance(other, GraphQLScalarType)
+            and self.name == other.name
+            and self.description == other.description
+            and self.directives == other.directives
             and self.coerce_output == other.coerce_output
             and self.coerce_input == other.coerce_input
             and self.parse_literal == other.parse_literal
+        )
+
+    def __repr__(self) -> str:
+        """
+        Returns the representation of a GraphQLScalarType instance.
+        :return: the representation of a GraphQLScalarType instance
+        :rtype: str
+        """
+        return "GraphQLScalarType(name={!r}, description={!r})".format(
+            self.name, self.description
         )
 
     # Introspection Attribute
@@ -74,31 +83,38 @@ class GraphQLScalarType(GraphQLType):
         return "SCALAR"
 
     @property
-    def directives(self):
+    def directives(self) -> Dict[int, Callable]:
+        # TODO: we should be able to remove this when `coercion_output` will be
+        # properly managed
         return self._directives_implementations
 
     def bake(self, schema: "GraphQLSchema") -> None:
+        """
+        Bakes the GraphQLScalarType and computes all the necessary stuff for
+        execution.
+        :param schema: the GraphQLSchema schema instance linked to the engine
+        :type schema: GraphQLSchema
+        """
         super().bake(schema)
 
         # Directives
-        self.directives_definition = compute_directive_nodes(
-            self._schema, self._directives
+        directives_definition = compute_directive_nodes(
+            schema, self._directives
         )
-        self._introspection_directives = wraps_with_directives(
-            directives_definition=self.directives_definition,
+        self.introspection_directives = wraps_with_directives(
+            directives_definition=directives_definition,
             directive_hook="on_introspection",
-        )
-        post_input_coercion_directives = wraps_with_directives(
-            directives_definition=self.directives_definition,
-            directive_hook="on_post_input_coercion",
         )
         self._directives_implementations = {
             CoercerWay.OUTPUT: wraps_with_directives(
-                directives_definition=self.directives_definition,
+                directives_definition=directives_definition,
                 directive_hook="on_pre_output_coercion",
-            ),
-            CoercerWay.INPUT: post_input_coercion_directives,
+            )
         }
+        post_input_coercion_directives = wraps_with_directives(
+            directives_definition=directives_definition,
+            directive_hook="on_post_input_coercion",
+        )
 
         # Coercers
         self.input_coercer = partial(

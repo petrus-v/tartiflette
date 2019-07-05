@@ -38,11 +38,9 @@ class ArgumentNode(Node):
         """
         return self is other or (
             isinstance(other, ArgumentNode)
-            and (
-                self.name == other.name
-                and self.value == other.value
-                and self.location == other.location
-            )
+            and self.name == other.name
+            and self.value == other.value
+            and self.location == other.location
         )
 
     def __repr__(self) -> str:

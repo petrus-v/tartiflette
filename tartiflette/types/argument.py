@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from tartiflette.coercers.argument import argument_coercer
 from tartiflette.coercers.literals.compute import get_literal_coercer
@@ -12,43 +12,59 @@ from tartiflette.utils.directives import wraps_with_directives
 
 class GraphQLArgument:
     """
-    Argument Definition
-
-    Arguments are used for:
-      - GraphQLField resolvers
-      - GraphQLInputObject fields
+    Definition of a GraphQL argument.
     """
 
     def __init__(
         self,
         name: str,
-        gql_type: Union[str, GraphQLType],
-        default_value: Optional[Any] = None,
+        gql_type: Union["GraphQLList", "GraphQLNonNull", str],
+        default_value: Optional["ValueNode"] = None,
         description: Optional[str] = None,
-        directives: Optional[List[Dict[str, Optional[dict]]]] = None,
-        schema=None,
+        directives: Optional[List["DirectiveNode"]] = None,
+        schema: Optional["GraphQLSchema"] = None,
     ) -> None:
-        self._schema = schema
-        self._type = {}
+        self.schema = schema
+        self._type: Union["GraphQLType", Dict[str, Any]] = {}
         self.name = name
         self.gql_type = gql_type
         self.default_value = default_value
         self.description = description
 
         # Directives
-        self._directives = directives
-        self._introspection_directives = None
-        self.directives_definition = None
+        self.directives = directives
+        self.introspection_directives: Optional[Callable] = None
 
         # Coercers
-        self.literal_coercer = None
-        self.coercer = None
+        self.literal_coercer: Optional[Callable] = None
+        self.coercer: Optional[Callable] = None
+
+    def __eq__(self, other: Any) -> bool:
+        """
+        Returns True if `other` instance is identical to `self`.
+        :param other: object instance to compare to `self`
+        :type other: Any
+        :return: whether or not `other` is identical to `self`
+        :rtype: bool
+        """
+        return self is other or (
+            isinstance(other, GraphQLArgument)
+            and self.name == other.name
+            and self.gql_type == other.gql_type
+            and self.default_value == other.default_value
+            and self.description == other.description
+            and self.directives == other.directives
+        )
 
     def __repr__(self) -> str:
+        """
+        Returns the representation of a GraphQLArgument instance.
+        :return: the representation of a GraphQLArgument instance
+        :rtype: str
+        """
         return (
-            "{}(name={!r}, gql_type={!r}, "
-            "default_value={!r}, description={!r}, directives={!r})".format(
-                self.__class__.__name__,
+            "GraphQLArgument(name={!r}, gql_type={!r}, default_value={!r}, "
+            "description={!r}, directives={!r})".format(
                 self.name,
                 self.gql_type,
                 self.default_value,
@@ -58,20 +74,24 @@ class GraphQLArgument:
         )
 
     def __str__(self) -> str:
+        """
+        Returns a human-readable representation of the argument.
+        :return: a human-readable representation of the argument
+        :rtype: str
+        """
         return self.name
 
-    def __eq__(self, other: Any) -> bool:
-        return self is other or (
-            type(self) is type(other)
-            and self.name == other.name
-            and self.gql_type == other.gql_type
-            and self.default_value == other.default_value
-            and self.directives == other.directives
-        )
-
+    # Introspection Attribute
     @property
-    def schema(self) -> "GraphQLSchema":
-        return self._schema
+    def type(self) -> Union["GraphQLType", Dict[str, Any]]:
+        return self._type
+
+    # Introspection Attribute?
+    @property
+    def defaultValue(  # pylint: disable=invalid-name
+        self
+    ) -> Optional["ValueNode"]:
+        return self.default_value
 
     @property
     def graphql_type(self) -> "GraphQLType":
@@ -81,50 +101,27 @@ class GraphQLArgument:
             else self.schema.find_type(self.gql_type)
         )
 
-    # Introspection Attribute
-    @property
-    def type(self) -> dict:
-        return self._type
-
-    @property
-    def is_list_type(self) -> bool:
-        if not isinstance(self.gql_type, str):
-            return self.gql_type.is_list or self.gql_type.contains_a_list
-        return False
-
-    @property
-    def is_required(self) -> bool:
-        if not isinstance(self.gql_type, GraphQLType):
-            return False
-        return self.gql_type.is_not_null and self.default_value is None
-
-    @property
-    def defaultValue(self) -> Any:  # pylint: disable=invalid-name
-        return self.default_value
-
-    @property
-    def directives(self) -> List[Dict[str, Any]]:
-        return self.directives_definition
-
-    @property
-    def introspection_directives(self):
-        return self._introspection_directives
-
     def bake(self, schema: "GraphQLSchema") -> None:
-        self._schema = schema
+        """
+        Bakes the GraphQLArgument and computes all the necessary stuff for
+        execution.
+        :param schema: the GraphQLSchema schema instance linked to the engine
+        :type schema: GraphQLSchema
+        """
+        self.schema = schema
 
         if isinstance(self.gql_type, GraphQLType):
             self._type = self.gql_type
         else:
             self._type["name"] = self.gql_type
-            self._type["kind"] = self._schema.find_type(self.gql_type).kind
+            self._type["kind"] = schema.find_type(self.gql_type).kind
 
         # Directives
-        self.directives_definition = compute_directive_nodes(
-            self._schema, self._directives
+        directives_definition = compute_directive_nodes(
+            schema, self.directives
         )
-        self._introspection_directives = wraps_with_directives(
-            directives_definition=self.directives_definition,
+        self.introspection_directives = wraps_with_directives(
+            directives_definition=directives_definition,
             directive_hook="on_introspection",
         )
 
@@ -133,7 +130,7 @@ class GraphQLArgument:
         self.coercer = partial(
             argument_coercer,
             directives=wraps_with_directives(
-                directives_definition=self.directives_definition,
+                directives_definition=directives_definition,
                 directive_hook="on_argument_execution",
             ),
         )

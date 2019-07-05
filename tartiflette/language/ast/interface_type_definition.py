@@ -47,13 +47,11 @@ class InterfaceTypeDefinitionNode(TypeDefinitionNode):
         """
         return self is other or (
             isinstance(other, InterfaceTypeDefinitionNode)
-            and (
-                self.description == other.description
-                and self.name == other.name
-                and self.directives == other.directives
-                and self.fields == other.fields
-                and self.location == other.location
-            )
+            and self.description == other.description
+            and self.name == other.name
+            and self.directives == other.directives
+            and self.fields == other.fields
+            and self.location == other.location
         )
 
     def __repr__(self) -> str:

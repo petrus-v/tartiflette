@@ -34,7 +34,7 @@ async def enum_coercer(
         return UNDEFINED_VALUE
 
     try:
-        enum_value = enum_type.get_enum_value(node.value)
+        enum_value = enum_type.get_value(node.value)
         return await enum_value.literal_coercer(
             node.value, ctx, *args, **kwargs
         )

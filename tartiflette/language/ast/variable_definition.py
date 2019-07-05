@@ -42,12 +42,10 @@ class VariableDefinitionNode(Node):
         """
         return self is other or (
             isinstance(other, VariableDefinitionNode)
-            and (
-                self.variable == other.variable
-                and self.type == other.type
-                and self.default_value == other.default_value
-                and self.location == other.location
-            )
+            and self.variable == other.variable
+            and self.type == other.type
+            and self.default_value == other.default_value
+            and self.location == other.location
         )
 
     def __repr__(self) -> str:

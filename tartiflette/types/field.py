@@ -4,16 +4,13 @@ from tartiflette.resolver.factory import get_field_resolver
 from tartiflette.types.helpers.get_directive_instances import (
     compute_directive_nodes,
 )
-from tartiflette.types.helpers.reduce_type import reduce_type
 from tartiflette.types.type import GraphQLType
 from tartiflette.utils.directives import wraps_with_directives
 
 
 class GraphQLField:
     """
-    Field Definition
-
-    A field is used in Object, Interfaces as its constituents.
+    Definition of a GraphQL field.
     """
 
     # pylint: disable=too-many-instance-attributes
@@ -21,48 +18,60 @@ class GraphQLField:
     def __init__(
         self,
         name: str,
-        gql_type: Union[str, GraphQLType],
+        gql_type: Union["GraphQLList", "GraphQLNonNull", str],
         arguments: Optional[Dict[str, "GraphQLArgument"]] = None,
-        resolver: Optional[callable] = None,
+        resolver: Optional[Callable] = None,
         description: Optional[str] = None,
-        directives: Optional[List[Dict[str, Optional[dict]]]] = None,
+        directives: Optional[List["DirectiveNode"]] = None,
         schema: Optional["GraphQLSchema"] = None,
     ) -> None:
+        self.schema = schema
         self.name = name
         self.gql_type = gql_type
         self.arguments = arguments or {}
-
-        self._directives = directives
-        self._schema = schema
         self.description = description or ""
 
-        self.resolver = None
+        # Directives
+        self.directives = directives
+        self.directives_definition: Optional[List[Dict[str, Any]]] = None
+        self.introspection_directives: Optional[Callable] = None
+
+        # Resolvers
         self.raw_resolver = resolver
-        self.type_resolver = None
-        self.subscribe = None
-        self.parent_type = None
+        self.resolver: Optional[Callable] = None
+        self.type_resolver: Optional[Callable] = None
+        self.subscribe: Optional[Callable] = None
 
-        # Introspection Attribute
+        # Introspection attributes
         self.isDeprecated = False  # pylint: disable=invalid-name
-        self.directives_definition = None
-        self._is_leaf = False
-        self._reduced_type = None
-        self._reduced_type_name = None
-        self._introspection_directives = None
 
-    @property
-    def directives(self) -> List[Dict[str, Any]]:
-        return self.directives_definition
-
-    @property
-    def introspection_directives(self):
-        return self._introspection_directives
+    def __eq__(self, other: Any) -> bool:
+        """
+        Returns True if `other` instance is identical to `self`.
+        :param other: object instance to compare to `self`
+        :type other: Any
+        :return: whether or not `other` is identical to `self`
+        :rtype: bool
+        """
+        return self is other or (
+            isinstance(other, GraphQLField)
+            and self.name == other.name
+            and self.gql_type == other.gql_type
+            and self.arguments == other.arguments
+            and self.description == other.description
+            and self.resolver == other.resolver
+            and self.directives == other.directives
+        )
 
     def __repr__(self) -> str:
+        """
+        Returns the representation of a GraphQLField instance.
+        :return: the representation of a GraphQLField instance
+        :rtype: str
+        """
         return (
-            "{}(name={!r}, gql_type={!r}, arguments={!r}, "
+            "GraphQLField(name={!r}, gql_type={!r}, arguments={!r}, "
             "resolver={!r}, description={!r}, directives={!r})".format(
-                self.__class__.__name__,
                 self.name,
                 self.gql_type,
                 self.arguments,
@@ -73,23 +82,12 @@ class GraphQLField:
         )
 
     def __str__(self) -> str:
+        """
+        Returns a human-readable representation of the field.
+        :return: a human-readable representation of the field
+        :rtype: str
+        """
         return self.name
-
-    def __eq__(self, other: Any) -> bool:
-        return self is other or (
-            type(self) is type(other)
-            and self.name == other.name
-            and self.gql_type == other.gql_type
-            and self.arguments == other.arguments
-            and self.resolver == other.resolver
-            and self.directives == other.directives
-        )
-
-    @property
-    def graphql_type(self) -> Union[str, GraphQLType]:
-        if isinstance(self.gql_type, GraphQLType):
-            return self.gql_type
-        return self.schema.find_type(self.gql_type)
 
     # Introspection Attribute
     @property
@@ -102,7 +100,7 @@ class GraphQLField:
 
     # Introspection Attribute
     @property
-    def type(self) -> Union[str, GraphQLType]:
+    def type(self) -> Union[str, "GraphQLType"]:
         if isinstance(self.gql_type, GraphQLType):
             return self.gql_type
         return self.schema.find_type(self.gql_type)
@@ -113,53 +111,40 @@ class GraphQLField:
         return list(self.arguments.values())
 
     @property
-    def schema(self) -> "GraphQLSchema":
-        return self._schema
-
-    @property
-    def is_leaf(self) -> bool:
-        return self._is_leaf
-
-    @property
-    def reduced_type(self) -> "GraphQLType":
-        return self._reduced_type
-
-    def _compute_is_leaf(self) -> bool:
-        try:
-            if self._schema.find_scalar(self._reduced_type_name):
-                return True
-        except KeyError:
-            pass
-
-        try:
-            if self._schema.find_enum(self._reduced_type_name):
-                return True
-        except KeyError:
-            pass
-
-        return False
+    def graphql_type(self) -> Union[str, "GraphQLType"]:
+        if isinstance(self.gql_type, GraphQLType):
+            return self.gql_type
+        return self.schema.find_type(self.gql_type)
 
     def bake(
         self,
         schema: "GraphQLSchema",
-        parent_type: Any,
         custom_default_resolver: Optional[Callable],
     ) -> None:
-        self._schema = schema
-        self._reduced_type_name = reduce_type(self.gql_type)
-        self._reduced_type = self._schema.find_type(self._reduced_type_name)
+        """
+        Bakes the GraphQLField and computes all the necessary stuff for
+        execution.
+        :param schema: the GraphQLSchema schema instance linked to the engine
+        :param custom_default_resolver: callable that will replace the builtin
+        default_resolver
+        :type schema: GraphQLSchema
+        :type custom_default_resolver: Optional[Callable]
+        """
+        self.schema = schema
+
+        # Directives
+        # TODO: we should be able to remove it when `get_field_resolver`
+        # wouldn't need it anymore
         self.directives_definition = compute_directive_nodes(
-            self._schema, self._directives
+            schema, self.directives
         )
-        self._introspection_directives = wraps_with_directives(
+        self.introspection_directives = wraps_with_directives(
             directives_definition=self.directives_definition,
             directive_hook="on_introspection",
         )
-        self.parent_type = parent_type
 
-        self._is_leaf = self._compute_is_leaf()
+        for argument in self.arguments.values():
+            argument.bake(schema)
 
-        for arg in self.arguments.values():
-            arg.bake(self._schema)
-
+        # Resolvers
         self.resolver = get_field_resolver(self, custom_default_resolver)

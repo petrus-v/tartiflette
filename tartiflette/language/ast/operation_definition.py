@@ -58,14 +58,12 @@ class OperationDefinitionNode(ExecutableDefinitionNode):
         """
         return self is other or (
             isinstance(other, OperationDefinitionNode)
-            and (
-                self.operation_type == other.operation_type
-                and self.name == other.name
-                and self.variable_definitions == other.variable_definitions
-                and self.directives == other.directives
-                and self.selection_set == other.selection_set
-                and self.location == other.location
-            )
+            and self.operation_type == other.operation_type
+            and self.name == other.name
+            and self.variable_definitions == other.variable_definitions
+            and self.directives == other.directives
+            and self.selection_set == other.selection_set
+            and self.location == other.location
         )
 
     def __repr__(self) -> str:

@@ -41,12 +41,10 @@ class SchemaExtensionNode(TypeSystemExtensionNode):
         """
         return self is other or (
             isinstance(other, SchemaExtensionNode)
-            and (
-                self.directives == other.directives
-                and self.operation_type_definitions
-                == other.operation_type_definitions
-                and self.location == other.location
-            )
+            and self.directives == other.directives
+            and self.operation_type_definitions
+            == other.operation_type_definitions
+            and self.location == other.location
         )
 
     def __repr__(self) -> str:

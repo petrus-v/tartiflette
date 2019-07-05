@@ -42,12 +42,10 @@ class UnionTypeExtensionNode(TypeExtensionNode):
         """
         return self is other or (
             isinstance(other, UnionTypeExtensionNode)
-            and (
-                self.name == other.name
-                and self.directives == other.directives
-                and self.types == other.types
-                and self.location == other.location
-            )
+            and self.name == other.name
+            and self.directives == other.directives
+            and self.types == other.types
+            and self.location == other.location
         )
 
     def __repr__(self) -> str:

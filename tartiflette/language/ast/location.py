@@ -40,12 +40,10 @@ class Location:
         """
         return self is other or (
             isinstance(other, Location)
-            and (
-                self.line == other.line
-                and self.column == other.column
-                and self.line_end == other.line_end
-                and self.column_end == other.column_end
-            )
+            and self.line == other.line
+            and self.column == other.column
+            and self.line_end == other.line_end
+            and self.column_end == other.column_end
         )
 
     def __repr__(self) -> str:

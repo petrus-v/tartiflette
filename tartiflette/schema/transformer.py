@@ -221,10 +221,10 @@ def parse_input_value_definition(
     input_value_definition_node: "InputValueDefinitionNode",
     schema: "GraphQLSchema",
     as_argument_definition: bool = False,
-) -> Optional["GraphQLArgument"]:
+) -> Optional[Union["GraphQLArgument", "GraphQLInputField"]]:
     """
-    Computes an AST input value definition node into a GraphQLArgument
-    instance.
+    Computes an AST input value definition node into a GraphQLArgument or
+    GraphQLInputField instance.
     :param input_value_definition_node: AST input value definition node to
     treat
     :param schema: the GraphQLSchema schema instance linked to the engine
@@ -233,8 +233,8 @@ def parse_input_value_definition(
     :type input_value_definition_node: InputValueDefinitionNode
     :type schema: GraphQLSchema
     :type as_argument_definition: bool
-    :return: the computed GraphQLArgument instance
-    :rtype: Optional[GraphQLArgument]
+    :return: the computed GraphQLArgument or GraphQLInputField instance
+    :rtype: Optional[Union[GraphQLArgument, GraphQLInputField]]
     """
     if not input_value_definition_node:
         return None
@@ -591,7 +591,7 @@ def parse_enum_value_definition(
 def parse_enum_values_definition(
     enum_values_definition_node: List["EnumValueDefinitionNode"],
     schema: "GraphQLSchema",
-) -> Optional[List["GraphQLENumValue"]]:
+) -> Optional[List["GraphQLEnumValue"]]:
     """
     Returns a list of computed GraphQLEnumValue.
     :param enum_values_definition_node: list of AST enum value definition node
@@ -600,7 +600,7 @@ def parse_enum_values_definition(
     :type enum_values_definition_node: List[EnumValueDefinitionNode]
     :type schema: GraphQLSchema
     :return: list of computed GraphQLEnumValue
-    :rtype: Optional[List[GraphQLENumValue]]
+    :rtype: Optional[List[GraphQLEnumValue]]
     """
     if not enum_values_definition_node:
         return None
@@ -644,16 +644,16 @@ def parse_enum_type_definition(
 def parse_input_fields_definition(
     input_fields_definition_node: List["InputValueDefinitionNode"],
     schema: "GraphQLSchema",
-) -> Optional[Dict[str, "GraphQLArgument"]]:
+) -> Optional[Dict[str, "GraphQLInputField"]]:
     """
-    Returns a dictionary of computed GraphQLArgument.
+    Returns a dictionary of computed GraphQLInputField.
     :param input_fields_definition_node: list of AST input value definition
     node to treat
     :param schema: the GraphQLSchema schema instance linked to the engine
     :type input_fields_definition_node: List[InputValueDefinitionNode]
     :type schema: GraphQLSchema
-    :return: dictionary of computed GraphQLArgument
-    :rtype: Optional[Dict[str, GraphQLArgument]]
+    :return: dictionary of computed GraphQLInputField
+    :rtype: Optional[Dict[str, GraphQLInputField]]
     """
     if not input_fields_definition_node:
         return None
@@ -749,7 +749,7 @@ def parse_directive_definition(
     directive = GraphQLDirective(
         name=parse_name(directive_definition_node.name, schema),
         description=parse_name(directive_definition_node.description, schema),
-        on=[
+        locations=[
             location.value for location in directive_definition_node.locations
         ],
         arguments=parse_arguments_definition(

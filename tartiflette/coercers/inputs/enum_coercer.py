@@ -30,7 +30,7 @@ async def enum_coercer(
     :rtype: CoercionResult
     """
     try:
-        enum_value = enum_type.get_enum_value(value)
+        enum_value = enum_type.get_value(value)
         return CoercionResult(
             value=await enum_value.input_coercer(value, ctx, *args, **kwargs)
         )

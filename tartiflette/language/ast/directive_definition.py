@@ -46,13 +46,11 @@ class DirectiveDefinitionNode(TypeSystemDefinitionNode):
         """
         return self is other or (
             isinstance(other, DirectiveDefinitionNode)
-            and (
-                self.description == other.description
-                and self.name == other.name
-                and self.arguments == other.arguments
-                and self.locations == other.locations
-                and self.location == other.location
-            )
+            and self.description == other.description
+            and self.name == other.name
+            and self.arguments == other.arguments
+            and self.locations == other.locations
+            and self.location == other.location
         )
 
     def __repr__(self) -> str:

@@ -92,7 +92,6 @@ async def should_include_node(
     :return: whether or not the node should be collected or skipped
     :rtype: bool
     """
-    # TODO: refactor this and improve it
     if not node.directives:
         return True
 

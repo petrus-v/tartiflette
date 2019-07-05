@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from tartiflette.coercers.inputs.directives_coercer import (
     input_directives_coercer,
@@ -24,47 +24,68 @@ from tartiflette.utils.directives import wraps_with_directives
 
 class GraphQLEnumValue:
     """
-    Enums are special leaf values.
-    `GraphQLEnumValue`s is a way to represent them.
+    Definition of a GraphQL enum value.
     """
 
     def __init__(
         self,
-        value: Any = None,
+        value: str,
         description: Optional[str] = None,
-        directives: Optional[
-            List[Dict[str, Union[str, Dict[str, Any]]]]
-        ] = None,
+        directives: Optional[List["DirectiveNode"]] = None,
     ) -> None:
-        self._schema = None
         self.value = value
         self.description = description
+        self.schema: Optional["GraphQLSchema"] = None
 
-        # Introspection Attribute
-        self.isDeprecated = False  # pylint: disable=invalid-name
+        # Introspection attributes
+        self.isDeprecated: bool = False  # pylint: disable=invalid-name
 
         # Directives
+        # TODO: we should be able to rename it to `self.directives` when
+        # `coercion_output` will be properly managed
         self._directives = directives
-        self._directives_implementations = None
-        self._introspection_directives = None
-        self.directives_definition = None
+        self._directives_implementations: Dict[int, Callable] = {}
+        self.introspection_directives: Optional[Callable] = None
 
         # Coercers
-        self.input_coercer = None
-        self.literal_coercer = None
+        self.input_coercer: Optional[Callable] = None
+        self.literal_coercer: Optional[Callable] = None
+
+    def __eq__(self, other: Any) -> bool:
+        """
+        Returns True if `other` instance is identical to `self`.
+        :param other: object instance to compare to `self`
+        :type other: Any
+        :return: whether or not `other` is identical to `self`
+        :rtype: bool
+        """
+        return self is other or (
+            isinstance(other, GraphQLEnumValue)
+            and self.value == other.value
+            and self.description == other.description
+            # and self.directives == other.directives  # TODO: un-comment it
+        )
 
     def __repr__(self) -> str:
-        return "{}(value={!r}, description={!r})".format(
-            self.__class__.__name__, self.value, self.description
+        """
+        Returns the representation of a GraphQLEnumValue instance.
+        :return: the representation of a GraphQLEnumValue instance
+        :rtype: str
+        """
+        return (
+            "GraphQLEnumValue(value={!r}, description={!r}, "
+            "directives={!r})".format(
+                self.value, self.description, self._directives
+            )
         )
 
     def __str__(self) -> str:
+        """
+        Returns a human-readable representation of the enum value.
+        :return: a human-readable representation of the enum value
+        :rtype: str
+        """
         return str(self.value)
-
-    def __eq__(self, other: Any) -> bool:
-        return self is other or (
-            type(self) is type(other) and self.value == other.value
-        )
 
     # Introspection Attribute
     @property
@@ -72,115 +93,105 @@ class GraphQLEnumValue:
         return self.value
 
     @property
-    def directives(self) -> List[Dict[str, Any]]:
+    def directives(self) -> Dict[int, Callable]:
+        # TODO: we should be able to remove this when `coercion_output` will be
+        # properly managed
         return self._directives_implementations
 
-    @property
-    def introspection_directives(self):
-        return self._introspection_directives
-
     def bake(self, schema: "GraphQLSchema") -> None:
-        self._schema = schema
-        self.directives_definition = compute_directive_nodes(
-            self._schema, self._directives
+        """
+        Bakes the GraphQLEnumValue and computes all the necessary stuff for
+        execution.
+        :param schema: the GraphQLSchema schema instance linked to the engine
+        :type schema: GraphQLSchema
+        """
+        self.schema = schema
+
+        # Directives
+        directives_definition = compute_directive_nodes(
+            schema, self._directives
         )
         self._directives_implementations = {
             CoercerWay.OUTPUT: wraps_with_directives(
-                directives_definition=self.directives_definition,
+                directives_definition=directives_definition,
                 directive_hook="on_pre_output_coercion",
             )
         }
-
-        self._introspection_directives = wraps_with_directives(
-            directives_definition=self.directives_definition,
+        self.introspection_directives = wraps_with_directives(
+            directives_definition=directives_definition,
             directive_hook="on_introspection",
         )
 
+        # Coercers
         self.input_coercer = wraps_with_directives(
-            directives_definition=self.directives_definition,
+            directives_definition=directives_definition,
             directive_hook="on_post_input_coercion",
         )
         self.literal_coercer = wraps_with_directives(
-            directives_definition=self.directives_definition,
+            directives_definition=directives_definition,
             directive_hook="on_post_input_coercion",
         )
 
 
 class GraphQLEnumType(GraphQLType):
     """
-    Enum Type Definition
-
-    Some leaf values of requests and input values are Enums.
-    GraphQL serializes Enum values as strings, however internally
-    Enums can be represented by any kind of type, often integers.
-
-    Note: If a value is not provided in a definition,
-    the name of the enum value will be used as its internal value.
+    Definition of a GraphQL enum type.
     """
 
     def __init__(
         self,
         name: str,
-        values: List[GraphQLEnumValue],
+        values: List["GraphQLEnumValue"],
         description: Optional[str] = None,
+        directives: Optional[List["DirectiveNode"]] = None,
         schema: Optional["GraphQLSchema"] = None,
-        directives: Optional[
-            List[Dict[str, Union[str, Dict[str, Any]]]]
-        ] = None,
     ) -> None:
-        super().__init__(
-            name=name,
-            description=description,
-            is_enum_value=True,
-            schema=schema,
-        )
+        super().__init__(name=name, description=description, schema=schema)
         self.values = values
-        self._value_map = {}
+        self._value_map: Dict[str, "GraphQLEnumValue"] = {}
 
         # Directives
+        # TODO: we should be able to rename it to `self.directives` when
+        # `coercion_output` will be properly managed
         self._directives = directives
-        self._directives_implementations = {}
-        self._directives_executors = {
+        self.introspection_directives: Optional[Callable] = None
+        self._directives_implementations: Dict[int, Callable] = {}
+        self._directives_executors: Dict[int, Callable] = {
             CoercerWay.OUTPUT: self._output_directives_executor
         }
-        self.directives_definition = None
 
         # Coercers
-        self.input_coercer = None
-        self.literal_coercer = None
-
-    def __repr__(self) -> str:
-        return "{}(name={!r}, values={!r}, description={!r})".format(
-            self.__class__.__name__, self.name, self.values, self.description
-        )
+        self.input_coercer: Optional[Callable] = None
+        self.literal_coercer: Optional[Callable] = None
 
     def __eq__(self, other: Any) -> bool:
-        return super().__eq__(other) and self.values == other.values
-
-    def coerce_output(self, val: Any) -> str:
-        if val in self._value_map:
-            return self._value_map[val].value
-        return UNDEFINED_VALUE
-
-    def get_value(self, name: str) -> str:
         """
-        Returns the value of the enum value `name`.
-        :param name: the name of the enum value to fetch
-        :type name: str
-        :return: the value of the enum value `name`
+        Returns True if `other` instance is identical to `self`.
+        :param other: object instance to compare to `self`
+        :type other: Any
+        :return: whether or not `other` is identical to `self`
+        :rtype: bool
+        """
+        return self is other or (
+            isinstance(other, GraphQLEnumType)
+            and self.name == other.name
+            and self.values == other.values
+            and self.description == other.description
+            # and self.directives == other.directives  # TODO: un-comment it
+        )
+
+    def __repr__(self) -> str:
+        """
+        Returns the representation of a GraphQLEnumType instance.
+        :return: the representation of a GraphQLEnumType instance
         :rtype: str
         """
-        return self._value_map[name].value
-
-    def get_enum_value(self, name: str) -> "GraphQLEnumValue":
-        """
-        Returns the GraphQLEnumValue instance of the enum value `name`.
-        :param name: the name of the enum value to fetch
-        :type name: str
-        :return: the GraphQLEnumValue instance of the enum value `name`
-        :rtype: GraphQLEnumValue
-        """
-        return self._value_map[name]
+        return (
+            "GraphQLEnumType(name={!r}, values={!r}, description={!r}, "
+            "directives={!r})".format(
+                self.name, self.values, self.description, self._directives
+            )
+        )
 
     # Introspection Attribute
     @property
@@ -191,12 +202,31 @@ class GraphQLEnumType(GraphQLType):
     @property
     def enumValues(  # pylint: disable=invalid-name
         self
-    ) -> List[GraphQLEnumValue]:
+    ) -> List["GraphQLEnumValue"]:
         return self.values
 
     @property
-    def directives(self):
+    def directives(self) -> Dict[int, Callable]:
+        # TODO: we should be able to remove this when `coercion_output` will be
+        # properly managed
         return self._directives_executors
+
+    def get_value(self, name: str) -> "GraphQLEnumValue":
+        """
+        Returns the GraphQLEnumValue instance of the enum value `name`.
+        :param name: the name of the enum value to fetch
+        :type name: str
+        :return: the GraphQLEnumValue instance of the enum value `name`
+        :rtype: GraphQLEnumValue
+        """
+        return self._value_map[name]
+
+    def coerce_output(self, value: Any) -> Union[str, "UNDEFINED_VALUE"]:
+        return (
+            self._value_map[value].value
+            if value in self._value_map
+            else UNDEFINED_VALUE
+        )
 
     async def _output_directives_executor(self, val, *args, **kwargs):
         if isinstance(val, list):
@@ -218,26 +248,32 @@ class GraphQLEnumType(GraphQLType):
         )
 
     def bake(self, schema: "GraphQLSchema") -> None:
+        """
+        Bakes the GraphQLEnumType and computes all the necessary stuff for
+        execution.
+        :param schema: the GraphQLSchema schema instance linked to the engine
+        :type schema: GraphQLSchema
+        """
         super().bake(schema)
 
         # Directives
-        self.directives_definition = compute_directive_nodes(
-            self._schema, self._directives
+        directives_definition = compute_directive_nodes(
+            schema, self._directives
         )
-        self._introspection_directives = wraps_with_directives(
-            directives_definition=self.directives_definition,
+        self.introspection_directives = wraps_with_directives(
+            directives_definition=directives_definition,
             directive_hook="on_introspection",
-        )
-        post_input_coercion_directives = wraps_with_directives(
-            directives_definition=self.directives_definition,
-            directive_hook="on_post_input_coercion",
         )
         self._directives_implementations = {
             CoercerWay.OUTPUT: wraps_with_directives(
-                directives_definition=self.directives_definition,
+                directives_definition=directives_definition,
                 directive_hook="on_pre_output_coercion",
             )
         }
+        post_input_coercion_directives = wraps_with_directives(
+            directives_definition=directives_definition,
+            directive_hook="on_post_input_coercion",
+        )
 
         # Coercers
         self.input_coercer = partial(
@@ -251,6 +287,6 @@ class GraphQLEnumType(GraphQLType):
             directives=post_input_coercion_directives,
         )
 
-        for value in self.values:
-            value.bake(schema)
-            self._value_map[value.name] = value
+        for enum_value in self.values:
+            enum_value.bake(schema)
+            self._value_map[enum_value.name] = enum_value

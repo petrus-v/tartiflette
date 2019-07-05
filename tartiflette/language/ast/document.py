@@ -34,10 +34,8 @@ class DocumentNode(Node):
         """
         return self is other or (
             isinstance(other, DocumentNode)
-            and (
-                self.definitions == other.definitions
-                and self.location == other.location
-            )
+            and self.definitions == other.definitions
+            and self.location == other.location
         )
 
     def __repr__(self) -> str:

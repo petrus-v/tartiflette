@@ -32,7 +32,8 @@ class VariableNode(ValueNode):
         """
         return self is other or (
             isinstance(other, VariableNode)
-            and (self.name == other.name and self.location == other.location)
+            and self.name == other.name
+            and self.location == other.location
         )
 
     def __repr__(self) -> str:

@@ -39,11 +39,9 @@ class OperationTypeDefinitionNode(Node):
         """
         return self is other or (
             isinstance(other, OperationTypeDefinitionNode)
-            and (
-                self.operation_type == other.operation_type
-                and self.type == other.type
-                and self.location == other.location
-            )
+            and self.operation_type == other.operation_type
+            and self.type == other.type
+            and self.location == other.location
         )
 
     def __repr__(self) -> str:

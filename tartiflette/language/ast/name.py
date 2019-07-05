@@ -32,7 +32,8 @@ class NameNode(Node):
         """
         return self is other or (
             isinstance(other, NameNode)
-            and (self.value == other.value and self.location == other.location)
+            and self.value == other.value
+            and self.location == other.location
         )
 
     def __repr__(self) -> str:

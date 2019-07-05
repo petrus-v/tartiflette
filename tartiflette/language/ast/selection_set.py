@@ -34,10 +34,8 @@ class SelectionSetNode(Node):
         """
         return self is other or (
             isinstance(other, SelectionSetNode)
-            and (
-                self.selections == other.selections
-                and self.location == other.location
-            )
+            and self.selections == other.selections
+            and self.location == other.location
         )
 
     def __repr__(self) -> str:
