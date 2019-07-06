@@ -34,6 +34,8 @@ Tartiflette gets most of its extensibility by Directives. A directive will allow
 
 ### How to declare a new directive?
 
+**recipes_manager/directives/rate_limiting.py**
+
 ```python
 from typing import Any, Callable, Dict, Optional
 
